@@ -1,0 +1,376 @@
+= Password Utility Suite - User Guide
+:toc: left
+:toclevels: 3
+:icons: font
+:imagesdir: images
+
+== Overview
+
+Password Utility Suite is a Java Swing application for encrypting and decrypting sensitive values in YAML and Properties configuration files. It supports multiple encryption algorithms and environments, making it ideal for managing secrets across different deployment stages (development, staging, production).
+
+== Quick Start
+
+=== Starting the Application
+
+[source,bash]
+----
+mvn exec:java -Prun
+----
+
+Or run the fat JAR:
+
+[source,bash]
+----
+java -jar password-utility-suite-1.0.0-SNAPSHOT.jar
+----
+
+=== Main Window
+
+When you start the application, you'll see the main window with four main areas:
+
+.Figure 1: Main Window
+image::01-main-window.png[Main Window,width=800]
+
+[cols="1,4"]
+|===
+|No. |Description
+
+|1
+|**Editor** - Text editor for YAML/Properties files
+
+|2
+|**Configuration Tree** - Tree view showing parsed configuration entries
+
+|3
+|**Actions Panel** - Environment and Algorithm dropdowns
+
+|4
+|**Status Bar** - Shows current file name and environment count
+|===
+
+== Setting Up an Environment
+
+Before you can encrypt or decrypt values, you need to configure at least one environment with a master password.
+
+=== Opening the Environments Dialog
+
+Press `Ctrl+E` or go to *Settings > Environments...*
+
+.Figure 2: Environments Dialog
+image::02-environments-dialog.png[Environments Dialog,width=500]
+
+[cols="1,4"]
+|===
+|No. |Description
+
+|1
+|**Environment Selection** - Dropdown to select existing environments, Edit and Delete buttons
+
+|2
+|**Form Fields** - Environment Name, Master Password, Default Algorithm, Format Prefix/Suffix
+
+|3
+|**Save Button** - Save the current environment configuration
+
+|4
+|**OK/Cancel Buttons** - Close dialog (OK applies selection, Cancel discards)
+|===
+
+=== Creating a New Environment
+
+1. Enter an **Environment Name** (e.g., "Production", "Development")
+2. Enter a **Master Password** - this is the key for encryption/decryption
+3. Optionally adjust the **Default Algorithm** (default: AES-256-GCM)
+4. Optionally customize **Format Prefix/Suffix** (default: `ENC[` and `]`)
+5. Click **Save** (Alt+S)
+
+.Figure 3: Environment Form with filled values
+image::03-environment-filled.png[Environment Form Filled,width=500]
+
+[cols="1,4"]
+|===
+|No. |Description
+
+|1
+|**Filled Form Fields** - Environment configuration ready to be saved
+|===
+
+After saving, the environment appears in the dropdown:
+
+.Figure 4: Environment saved and selectable
+image::04-environment-saved.png[Environment Saved,width=500]
+
+[cols="1,4"]
+|===
+|No. |Description
+
+|1
+|**Environment Dropdown** - Shows the saved environment "Production" as selected
+|===
+
+Click **OK** (Alt+O) to close the dialog.
+
+=== Available Algorithms
+
+|===
+|Algorithm |Description |Key Requirement
+
+|AES-256-GCM
+|Modern authenticated encryption (recommended)
+|Any password
+
+|AES-256-CBC
+|Classic AES with CBC mode
+|Any password
+
+|Blowfish
+|Legacy algorithm
+|Any password
+
+|MuleSoft-AES-CBC
+|MuleSoft compatible format
+|Exactly 16 or 32 characters
+
+|MuleSoft-AES-CBC-RandomIV
+|MuleSoft with random IV
+|Exactly 16 or 32 characters
+|===
+
+== Working with Files
+
+=== Creating a New File
+
+Press `Ctrl+N` or go to *File > New*
+
+=== Opening an Existing File
+
+Press `Ctrl+O` or go to *File > Open...*
+
+Supported formats:
+* YAML files (`.yaml`, `.yml`)
+* Properties files (`.properties`)
+
+=== Editing Content
+
+Enter your configuration content in the editor. The tree view on the right automatically parses and displays the structure:
+
+.Figure 5: Editor with YAML content
+image::05-editor-with-content.png[Editor with Content,width=800]
+
+[cols="1,4"]
+|===
+|No. |Description
+
+|1
+|**Editor** - YAML/Properties content (automatically parsed)
+
+|2
+|**Configuration Tree** - Hierarchical view of parsed entries
+
+|3
+|**Actions Panel** - Select Algorithm and Environment for encryption
+|===
+
+The tree shows:
+* **Groups** (e.g., `database`) - expandable nodes
+* **Entries** (e.g., `host: localhost`) - leaf nodes with key=value
+
+== Encrypting Values
+
+=== Method 1: Double-Click
+
+1. Select an entry in the tree
+2. Double-click on it to toggle encryption/decryption
+
+=== Method 2: Keyboard Shortcut
+
+1. Select an entry in the tree
+2. Press `Alt+C` to toggle encryption/decryption
+
+=== Method 3: Context Menu
+
+1. Right-click on an entry in the tree
+2. Select "Toggle Encrypt/Decrypt"
+
+After encryption, the value in the editor changes to the encrypted format:
+
+.Figure 6: Encrypted password value
+image::06-encrypted-value.png[Encrypted Value,width=800]
+
+[cols="1,4"]
+|===
+|No. |Description
+
+|1
+|**Encrypted value in Editor** - Shows `ENC[...]` format in the YAML content
+
+|2
+|**Encrypted value in Tree** - Shows with lock icon prefix in the tree view
+|===
+
+The encrypted value is wrapped in the configured format (e.g., `ENC[...]`).
+
+== Decrypting Values
+
+To decrypt a value, use the same methods as encryption:
+* Double-click on an encrypted entry
+* Select it and press `Alt+C`
+* Right-click and select "Toggle Encrypt/Decrypt"
+
+IMPORTANT: You must have the same environment (with the correct master password) active that was used for encryption.
+
+== Keyboard Shortcuts
+
+=== File Operations
+
+|===
+|Shortcut |Action
+
+|Ctrl+N
+|New file
+
+|Ctrl+O
+|Open file
+
+|Ctrl+S
+|Save file
+
+|Ctrl+Shift+S
+|Save As...
+
+|Ctrl+E
+|Open Environments dialog
+|===
+
+=== Tree Operations
+
+|===
+|Shortcut |Action
+
+|Alt+C
+|Toggle Encrypt/Decrypt selected entry
+
+|Alt+M
+|Toggle encryption marker on selected entries
+
+|Alt+K
+|Copy selected key to clipboard
+
+|Alt+V
+|Copy selected value to clipboard
+
+|Alt+E
+|Copy selected entry (key=value) to clipboard
+|===
+
+=== Menu Mnemonics
+
+All menus and buttons support keyboard mnemonics (underlined letter):
+
+* **File Menu**: Alt+F
+** **N**ew, **O**pen, **S**ave, Save **A**s, E**x**it
+* **Edit Menu**: Alt+E
+** **U**ndo, **R**edo
+* **Settings Menu**: Alt+S
+** **E**nvironments...
+
+Dialog buttons:
+* **S**ave (Alt+S)
+* **E**dit (Alt+E)
+* **D**elete (Alt+D)
+* **O**K (Alt+O)
+* **C**ancel (Alt+C)
+
+== Working with Multiple Environments
+
+You can create multiple environments for different purposes:
+
+* **Development**: Uses a simple password for local testing
+* **Staging**: Uses the staging environment's master password
+* **Production**: Uses the production master password
+
+Each environment can have:
+* Different master passwords
+* Different encryption algorithms
+* Different format prefixes/suffixes
+
+=== Switching Environments
+
+Select the desired environment from the dropdown in the Action Panel. The application will:
+
+1. Update the active encryption settings
+2. Re-parse the file to detect encrypted values with the new format
+3. Show encrypted values with a lock icon in the tree
+
+== Working with Multiple Tabs
+
+The application supports multiple open files in tabs:
+
+* Each tab maintains its own editor content
+* Each tab can have a different selected environment
+* Each tab can have a different selected algorithm
+* Switching tabs restores the tab's environment and algorithm settings
+
+=== Closing Tabs
+
+* Click the **x** button on the tab
+* If the file has unsaved changes, a confirmation dialog appears
+
+== Format Detection
+
+The application automatically detects encrypted values based on the active environment's format:
+
+* Default format: `ENC[encrypted-data]`
+* MuleSoft format: `![encrypted-data]`
+* Custom formats: As configured in the environment
+
+Encrypted values are displayed with a lock icon in the tree view.
+
+== Tips and Best Practices
+
+=== Password Security
+
+* Use strong, unique passwords for each environment
+* Never commit plain-text passwords to version control
+* Consider using a password manager for master passwords
+
+=== File Organization
+
+* Keep separate configuration files for each environment
+* Use descriptive environment names
+* Document which environment was used to encrypt values
+
+=== Workflow
+
+1. Create environments for all your deployment stages
+2. Open your configuration file
+3. Select the appropriate environment
+4. Encrypt sensitive values (passwords, API keys, secrets)
+5. Save the file
+6. Commit the file with encrypted values to version control
+
+=== KeePass Integration
+
+The application supports KeePass Auto-Type:
+
+* Environment name field is focused when dialog opens
+* Press Enter in password field to save
+* Press Escape to cancel and close dialog
+
+== Troubleshooting
+
+=== "Decryption failed" Error
+
+* Verify the correct environment is selected
+* Check that the master password is correct
+* Ensure the algorithm matches the one used for encryption
+
+=== Values Not Detected as Encrypted
+
+* Check the format prefix/suffix matches the encrypted value
+* Verify the environment is active (not "No Environment")
+* Try re-parsing by making a small edit to the file
+
+=== MuleSoft Password Validation Error
+
+MuleSoft algorithms require passwords of exactly 16 or 32 characters. Adjust your password accordingly.

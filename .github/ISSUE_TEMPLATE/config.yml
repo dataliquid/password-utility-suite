@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/dataliquid/password-utility-suite#readme
+    about: Please read the documentation before opening an issue

@@ -1,0 +1,17 @@
+package com.dataliquid.passwordsuite.crypto;
+
+/**
+ * Exception thrown when encryption or decryption operations fail.
+ */
+public class CryptoException extends Exception {
+
+    private static final long serialVersionUID = 1L;
+
+    public CryptoException(String message) {
+        super(message);
+    }
+
+    public CryptoException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
