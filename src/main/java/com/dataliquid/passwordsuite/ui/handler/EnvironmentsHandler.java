@@ -54,7 +54,6 @@ public class EnvironmentsHandler {
      * @param parentFrame       the parent frame for dialogs
      * @param autoParseCallback callback to auto-parse tab content
      */
-    @SuppressWarnings("PMD.ExcessiveParameterList")
     public EnvironmentsHandler(ActionPanel actionPanel, TreePanel treePanel, TabbedEditorPanel tabbedEditorPanel,
             CryptoService cryptoService, PasswordManager passwordManager, CipherRegistry cipherRegistry,
             Frame parentFrame, BiConsumer<FileTab, String> autoParseCallback) {
@@ -84,7 +83,6 @@ public class EnvironmentsHandler {
      * @param errorCallback callback to display error messages
      * @param infoCallback  callback to display info messages
      */
-    @SuppressWarnings("PMD.InvalidLogMessageFormat")
     public void handleEnvironments(Consumer<String> errorCallback, Consumer<String> infoCallback) {
         EnvironmentsDialog dialog = new EnvironmentsDialog(parentFrame, passwordManager.getEnvironmentsCopy(),
                 passwordManager.getActiveEnvironment(), cipherRegistry);
