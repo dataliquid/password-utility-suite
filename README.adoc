@@ -1,12 +1,8 @@
 = Password Utility Suite
-:toc: macro
-:toclevels: 2
 
 A Java Swing application for encrypting and decrypting sensitive values in YAML and Properties configuration files. Manage secrets across multiple environments (development, staging, production) with environment-specific master passwords and support for various encryption algorithms.
 
 image::docs/images/showcase.gif[Showcase Demo,width=800]
-
-toc::[]
 
 == Features
 
