@@ -56,7 +56,6 @@ public class AlgorithmConfig {
      * @param minPasswordLength   minimum password length (0 = no constraint)
      * @param maxPasswordLength   maximum password length (0 = no constraint)
      */
-    @SuppressWarnings("PMD.ExcessiveParameterList")
     public AlgorithmConfig(String algorithm, String mode, String padding, int keySize, CipherFactory factory,
             String defaultFormatPrefix, String defaultFormatSuffix, int minPasswordLength, int maxPasswordLength) {
         this.algorithm = algorithm;
