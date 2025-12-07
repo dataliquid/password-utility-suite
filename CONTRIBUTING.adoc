@@ -1,0 +1,174 @@
+= Contributing to Password Utility Suite
+
+Thank you for your interest in contributing to the Password Utility Suite! This document provides guidelines and instructions for contributing.
+
+== Table of Contents
+
+* <<code-of-conduct,Code of Conduct>>
+* <<getting-started,Getting Started>>
+* <<development-setup,Development Setup>>
+* <<making-changes,Making Changes>>
+* <<submitting-changes,Submitting Changes>>
+* <<coding-standards,Coding Standards>>
+* <<testing-guidelines,Testing Guidelines>>
+
+[#code-of-conduct]
+== Code of Conduct
+
+We are committed to providing a welcoming and inspiring community for all. Please be respectful and constructive in your interactions with other contributors.
+
+[#getting-started]
+== Getting Started
+
+. Fork the repository on GitHub
+. Clone your fork locally
+. Create a new branch for your feature or bugfix
+. Make your changes
+. Submit a pull request
+
+[#development-setup]
+== Development Setup
+
+=== Prerequisites
+
+* Java 17 or higher
+* Maven 3.6.0 or higher
+* Git
+
+=== Building the Project
+
+[source,bash]
+----
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/password-utility-suite.git
+cd password-utility-suite
+
+# Build the project
+mvn clean install
+
+# Run tests
+mvn test
+
+# Run the application
+mvn exec:java -Prun
+
+# Build fat JAR
+mvn package -Pfat-jar
+----
+
+[#making-changes]
+== Making Changes
+
+=== Branch Naming Convention
+
+We follow GitFlow branching model:
+
+* Feature branches: `feature/description-of-feature`
+* Bugfix branches: `bugfix/description-of-bug`
+* Hotfix branches: `hotfix/version`
+* Release branches: `release/version`
+
+=== Commit Messages
+
+Write clear, concise commit messages that describe the change:
+
+----
+Add support for AES-256-GCM encryption
+Fix YAML parsing for nested structures
+Update FlatLaf dependency to 3.5.2
+----
+
+If there's a related issue, include the issue number:
+
+----
+#42 Add bulk encryption feature
+----
+
+[#submitting-changes]
+== Submitting Changes
+
+=== Pull Request Process
+
+. Ensure all tests pass: `mvn test`
+. Update documentation if needed
+. Add tests for new functionality
+. Create a pull request with a clear description
+
+=== Pull Request Template
+
+When creating a PR, please include:
+
+* *Description*: What does this PR do?
+* *Type*: Bug fix, feature, documentation, etc.
+* *Testing*: How has this been tested?
+* *Checklist*: Tests pass, documentation updated, etc.
+
+[#coding-standards]
+== Coding Standards
+
+=== Java Code Style
+
+* Use 4 spaces for indentation (no tabs)
+* Maximum line length: 120 characters
+* Use meaningful variable and method names
+* Add Javadoc for all public methods
+* Follow standard Java naming conventions
+
+=== Example Code Style
+
+[source,java]
+----
+/**
+ * Encrypts the given plaintext using the configured algorithm.
+ *
+ * @param plaintext the text to encrypt
+ * @param password the encryption password
+ * @return the encrypted text
+ * @throws CryptoException if encryption fails
+ */
+public String encrypt(String plaintext, char[] password) throws CryptoException {
+    // Implementation
+}
+----
+
+[#testing-guidelines]
+== Testing Guidelines
+
+=== Unit Tests
+
+* Write unit tests for all new functionality
+* Use descriptive test method names
+* Test both success and failure cases
+* Follow the AAA pattern (Arrange, Act, Assert)
+
+=== Test Structure
+
+[source,java]
+----
+@Test
+void encrypt_withValidInput_shouldReturnEncryptedValue() {
+    // Arrange
+    String plaintext = "secret";
+    char[] password = "password".toCharArray();
+
+    // Act
+    String result = cryptoService.encrypt(plaintext, password);
+
+    // Assert
+    assertThat(result).startsWith("ENC(");
+}
+----
+
+== Questions and Support
+
+If you have questions or need help:
+
+. Check existing issues on GitHub
+. Read the documentation
+. Create a new issue with the `question` label
+
+== Recognition
+
+Contributors will be recognized in the project's contributors list and release notes.
+
+Thank you for contributing to the Password Utility Suite!

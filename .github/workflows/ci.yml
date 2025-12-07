@@ -1,0 +1,39 @@
+name: CI Build
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ master, develop, 'feature/**', 'bugfix/**' ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build with Java 17
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Setup Xvfb (for UI tests)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+        Xvfb :99 -screen 0 1920x1080x24 &
+
+    - name: Build and run unit tests
+      run: mvn clean test -B -Dgpg.skip=true
+
+    - name: Run UI integration tests
+      run: mvn failsafe:integration-test failsafe:verify -B -Dgpg.skip=true
+      env:
+        DISPLAY: :99
