@@ -25,7 +25,7 @@ import com.dataliquid.passwordsuite.service.CryptoService;
  * </pre>
  */
 @SuppressWarnings({ "PMD.SystemPrintln", "PMD.UseVarargs", "PMD.AvoidReassigningLoopVariables",
-        "PMD.AvoidInstantiatingObjectsInLoops", "PMD.ConsecutiveAppendsShouldReuse" })
+        "PMD.AvoidInstantiatingObjectsInLoops", "PMD.ConsecutiveAppendsShouldReuse", "PMD.AssignmentInOperand" })
 public final class PasswordUtilitySuiteCLI {
 
     private static final String DEFAULT_ALGORITHM = "AES-256-GCM";

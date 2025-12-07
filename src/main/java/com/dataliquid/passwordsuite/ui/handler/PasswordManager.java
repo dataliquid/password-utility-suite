@@ -85,7 +85,6 @@ public class PasswordManager {
      *
      * @return the environment configuration, or null if no environments configured
      */
-    @SuppressWarnings("PMD.ReturnEmptyCollectionRatherThanNull")
     public EnvironmentConfig getActiveConfig() {
         if (environments.isEmpty()) {
             return null;

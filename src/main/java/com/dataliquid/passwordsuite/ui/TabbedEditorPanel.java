@@ -20,6 +20,7 @@ import javax.swing.event.ChangeListener;
  * Panel containing a tabbed editor for managing multiple open files. Each tab
  * contains a FileTab instance with its own editor and configuration tree.
  */
+@SuppressWarnings("PMD.AssignmentInOperand")
 public final class TabbedEditorPanel extends JPanel {
 
     private static final long serialVersionUID = 1L;

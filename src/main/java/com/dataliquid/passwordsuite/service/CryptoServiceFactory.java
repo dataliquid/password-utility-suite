@@ -37,7 +37,6 @@ public class CryptoServiceFactory {
      *
      * @throws CryptoException if configuration fails
      */
-    @SuppressWarnings("PMD.UseVarargs")
     public CryptoService create(char[] password, String algorithm, String formatPrefix, String formatSuffix)
             throws CryptoException {
         CipherFactory cipherFactory = createCipherFactory(password);

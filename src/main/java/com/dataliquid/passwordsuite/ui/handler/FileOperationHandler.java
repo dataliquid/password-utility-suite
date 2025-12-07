@@ -58,7 +58,6 @@ public class FileOperationHandler {
      * @param parentComponent   the parent component for dialogs
      * @param autoParseCallback callback to auto-parse tab content
      */
-    @SuppressWarnings("PMD.ExcessiveParameterList")
     public FileOperationHandler(TabbedEditorPanel tabbedEditorPanel, TreePanel treePanel, EditorService editorService,
             ExportService exportService, FileIOService fileIOService, PasswordManager passwordManager,
             Component parentComponent, BiConsumer<FileTab, String> autoParseCallback) {
