@@ -3,6 +3,8 @@ package com.dataliquid.passwordsuite.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import javax.swing.JTextArea;
+
 import org.junit.jupiter.api.Test;
 
 import com.dataliquid.passwordsuite.domain.ConfigEntry;
@@ -126,5 +128,94 @@ class EditorServiceTest {
 
         service.redo();
         assertThat(entry.getValue()).isEqualTo("value3");
+    }
+
+    @Test
+    void shouldReplaceMultilineYamlValue() throws ParseException {
+        String yaml = """
+                gcp:
+                  project_id: my-project-12345
+                  service_account_key: |
+                    {
+                      "type": "service_account",
+                      "project_id": "my-project-12345",
+                      "private_key": "-----BEGIN PRIVATE KEY-----"
+                    }
+                  other_key: value
+                """;
+
+        service.parseContent(yaml);
+        ConfigEntry entry = (ConfigEntry) service.getCurrentTree().findByPath("gcp.service_account_key").orElseThrow();
+
+        String oldValue = entry.getValue();
+        String newValue = "ENC[encrypted_multiline_value]";
+
+        JTextArea editor = new JTextArea(yaml);
+        service.replaceValueInEditor(entry, oldValue, newValue, editor);
+
+        String result = editor.getText();
+
+        // The multiline value should be replaced with the single-line encrypted value
+        assertThat(result).contains("service_account_key: ENC[encrypted_multiline_value]");
+        assertThat(result).doesNotContain("\"type\": \"service_account\"");
+        assertThat(result).doesNotContain("\"private_key\"");
+        // Other entries should remain unchanged
+        assertThat(result).contains("project_id: my-project-12345");
+        assertThat(result).contains("other_key: value");
+    }
+
+    @Test
+    void shouldReplaceSingleLineValue() throws ParseException {
+        String yaml = "host: localhost\nport: 5432";
+
+        service.parseContent(yaml);
+        ConfigEntry entry = (ConfigEntry) service.getCurrentTree().findByPath("host").orElseThrow();
+
+        JTextArea editor = new JTextArea(yaml);
+        service.replaceValueInEditor(entry, "localhost", "ENC[encrypted]", editor);
+
+        assertThat(editor.getText()).isEqualTo("host: ENC[encrypted]\nport: 5432");
+    }
+
+    @Test
+    void shouldPreserveEntriesAfterMultilineBlock() throws ParseException {
+        String yaml = """
+                gcp:
+                  project_id: my-project-12345
+                  service_account_key: |
+                    {
+                      "type": "service_account"
+                    }
+
+                external_apis:
+                  stripe:
+                    public_key: pk_test_123
+                    secret_key: sk_test_456
+                  twilio:
+                    account_sid: AC123
+                """;
+
+        service.parseContent(yaml);
+        ConfigEntry entry = (ConfigEntry) service.getCurrentTree().findByPath("gcp.service_account_key").orElseThrow();
+
+        String oldValue = entry.getValue();
+        String newValue = "ENC[encrypted]";
+
+        JTextArea editor = new JTextArea(yaml);
+        service.replaceValueInEditor(entry, oldValue, newValue, editor);
+
+        String result = editor.getText();
+
+        // Multiline block should be replaced
+        assertThat(result).contains("service_account_key: ENC[encrypted]");
+        assertThat(result).doesNotContain("\"type\": \"service_account\"");
+
+        // All entries after the block must be preserved
+        assertThat(result).contains("external_apis:");
+        assertThat(result).contains("stripe:");
+        assertThat(result).contains("public_key: pk_test_123");
+        assertThat(result).contains("secret_key: sk_test_456");
+        assertThat(result).contains("twilio:");
+        assertThat(result).contains("account_sid: AC123");
     }
 }

@@ -372,6 +372,101 @@ class WorkflowIntegrationIT extends AbstractSwingIT {
     }
 
     @Nested
+    class EncryptionMenuWorkflows {
+
+        @Test
+        void shouldEncryptMarkedEntriesViaMenu() throws InterruptedException {
+            // 1. Create environment with password
+            window.menuItemWithPath("Settings", "Environments...").click();
+            DialogFixture dialog = window.dialog();
+            dialog.textBox("environmentNameField").enterText("MenuEncryptEnv");
+            dialog.textBox("masterPasswordField").enterText("menupassword12345");
+            dialog.comboBox("algorithmComboBox").selectItem("AES-256-GCM");
+            dialog.button("saveButton").click();
+            dialog.button("okButton").click();
+
+            // 2. Create new file with plain values
+            window.menuItemWithPath("File", "New").click();
+            String yaml = "database:\n  password: secretvalue\n  host: localhost";
+            window.textBox("fileEditor").enterText(yaml);
+            Thread.sleep(800);
+
+            // 3. Expand tree and mark entry for encryption
+            JTreeFixture tree = window.tree("configTree");
+            tree.expandRow(0);
+            tree.expandRow(1);
+            Thread.sleep(200);
+
+            // Mark password entry for encryption via context menu
+            tree.rightClickRow(2);
+            JPopupMenu popup = robot.findActivePopupMenu();
+            new JPopupMenuFixture(robot, popup).menuItemWithPath("Toggle Encryption Marker").click();
+            Thread.sleep(200);
+
+            // 4. Use Edit -> Encryption -> Encrypt Marked menu
+            window.menuItemWithPath("Edit", "Encryption", "Encrypt Marked").click();
+            Thread.sleep(500);
+
+            // 5. VERIFY: Content should be encrypted
+            String encryptedContent = window.textBox("fileEditor").text();
+            assertThat(encryptedContent).contains("ENC[");
+            assertThat(encryptedContent).doesNotContain("secretvalue");
+            assertThat(encryptedContent).contains("host: localhost"); // Unmarked entry unchanged
+        }
+
+        @Test
+        void shouldDecryptMarkedEntriesViaMenu() throws InterruptedException {
+            // 1. Create environment
+            window.menuItemWithPath("Settings", "Environments...").click();
+            DialogFixture dialog = window.dialog();
+            dialog.textBox("environmentNameField").enterText("MenuDecryptEnv");
+            dialog.textBox("masterPasswordField").enterText("menupassword12345");
+            dialog.comboBox("algorithmComboBox").selectItem("AES-256-GCM");
+            dialog.button("saveButton").click();
+            dialog.button("okButton").click();
+
+            // 2. Create file, mark and encrypt first
+            window.menuItemWithPath("File", "New").click();
+            window.textBox("fileEditor").enterText("config:\n  secret: plaintext");
+            Thread.sleep(800);
+
+            JTreeFixture tree = window.tree("configTree");
+            tree.expandRow(0);
+            tree.expandRow(1);
+            Thread.sleep(200);
+
+            // Mark and encrypt via context menu first
+            tree.rightClickRow(2);
+            JPopupMenu popup = robot.findActivePopupMenu();
+            new JPopupMenuFixture(robot, popup).menuItemWithPath("Toggle Encryption Marker").click();
+
+            tree.rightClickRow(2);
+            popup = robot.findActivePopupMenu();
+            new JPopupMenuFixture(robot, popup).menuItemWithPath("Toggle Encrypt/Decrypt").click();
+            Thread.sleep(500);
+
+            // Verify encrypted
+            String encryptedContent = window.textBox("fileEditor").text();
+            assertThat(encryptedContent).contains("ENC[");
+
+            // 3. Mark the encrypted entry for decryption
+            tree.rightClickRow(2);
+            popup = robot.findActivePopupMenu();
+            new JPopupMenuFixture(robot, popup).menuItemWithPath("Toggle Encryption Marker").click();
+            Thread.sleep(200);
+
+            // 4. Use Edit -> Encryption -> Decrypt Marked menu
+            window.menuItemWithPath("Edit", "Encryption", "Decrypt Marked").click();
+            Thread.sleep(500);
+
+            // 5. VERIFY: Content should be decrypted
+            String decryptedContent = window.textBox("fileEditor").text();
+            assertThat(decryptedContent).contains("plaintext");
+            assertThat(decryptedContent).doesNotContain("ENC[");
+        }
+    }
+
+    @Nested
     class EncryptionDecryptionWorkflows {
 
         @Test

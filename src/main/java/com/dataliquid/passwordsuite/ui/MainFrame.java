@@ -215,6 +215,30 @@ public final class MainFrame extends JFrame {
         editMenu.add(createMenuItem("Undo", 'U', e -> editHandler.handleUndo()));
         editMenu.add(createMenuItem("Redo", 'R', e -> editHandler.handleRedo()));
 
+        editMenu.addSeparator();
+
+        // Encryption submenu
+        JMenu encryptionMenu = new JMenu("Encryption");
+        encryptionMenu.setMnemonic('n');
+
+        JMenuItem encryptMarkedItem = createMenuItem("Encrypt Marked", 'E',
+                e -> cryptoHandler
+                        .handleEncryptMarked(tabbedEditorPanel.getActiveTab(), treePanel, treePanel::refresh,
+                                this::showError, this::showInfo));
+        encryptMarkedItem
+                .setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, shortcutKey | InputEvent.SHIFT_DOWN_MASK));
+        encryptionMenu.add(encryptMarkedItem);
+
+        JMenuItem decryptMarkedItem = createMenuItem("Decrypt Marked", 'D',
+                e -> cryptoHandler
+                        .handleDecryptMarked(tabbedEditorPanel.getActiveTab(), treePanel, treePanel::refresh,
+                                this::showError, this::showInfo));
+        decryptMarkedItem
+                .setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, shortcutKey | InputEvent.SHIFT_DOWN_MASK));
+        encryptionMenu.add(decryptMarkedItem);
+
+        editMenu.add(encryptionMenu);
+
         // Settings Menu - delegate to EnvironmentsHandler
         JMenu settingsMenu = new JMenu("Settings");
         settingsMenu.setMnemonic('S');
