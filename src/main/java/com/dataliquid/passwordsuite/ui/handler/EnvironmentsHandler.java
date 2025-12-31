@@ -147,7 +147,6 @@ public class EnvironmentsHandler {
     /**
      * Handles algorithm selection change.
      */
-    @SuppressWarnings("PMD.InvalidLogMessageFormat")
     public void handleAlgorithmChange() {
         FileTab activeTab = tabbedEditorPanel.getActiveTab();
         if (activeTab != null) {
@@ -170,7 +169,7 @@ public class EnvironmentsHandler {
                 }
             } catch (CryptoException e) {
                 if (logger.isErrorEnabled()) {
-                    logger.error("Failed to switch algorithm to: {} - {}", selected, e.getMessage(), e);
+                    logger.error("Failed to switch algorithm to: " + selected, e);
                 }
                 JOptionPane
                         .showMessageDialog(parentFrame, "Failed to switch algorithm: " + e.getMessage(),
@@ -182,7 +181,6 @@ public class EnvironmentsHandler {
     /**
      * Handles environment selection change.
      */
-    @SuppressWarnings("PMD.InvalidLogMessageFormat")
     public void handleEnvironmentChange() {
         String selected = actionPanel.getSelectedEnvironment();
         logger.debug("Environment change requested: {}", selected);
@@ -196,9 +194,7 @@ public class EnvironmentsHandler {
                 updateCryptoServicePassword();
             } catch (CryptoException e) {
                 if (logger.isErrorEnabled()) {
-                    logger
-                            .error("Failed to update CryptoService for environment: {} - {}", selected, e.getMessage(),
-                                    e);
+                    logger.error("Failed to update CryptoService for environment: " + selected, e);
                 }
             }
         }
@@ -211,7 +207,7 @@ public class EnvironmentsHandler {
                 cryptoService.setAlgorithm(defaultAlgorithm);
             } catch (CryptoException e) {
                 if (logger.isErrorEnabled()) {
-                    logger.error("Failed to set default algorithm: {} - {}", defaultAlgorithm, e.getMessage(), e);
+                    logger.error("Failed to set default algorithm: " + defaultAlgorithm, e);
                 }
             }
         } else {

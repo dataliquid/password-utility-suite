@@ -5,20 +5,25 @@ import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.EventObject;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
+import javax.swing.DefaultCellEditor;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -46,6 +51,7 @@ public final class TreePanel extends JPanel {
     private Consumer<Void> markerChangeCallback;
     private Consumer<ConfigEntry> cryptoToggleCallback;
     private Supplier<Boolean> isYamlFormatSupplier;
+    private BiConsumer<ConfigEntry, String> valueEditCallback;
 
     public TreePanel() {
         setLayout(new BorderLayout());
@@ -62,6 +68,18 @@ public final class TreePanel extends JPanel {
 
         // Enable multi-selection (CTRL+click, SHIFT+click)
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
+
+        // Setup inline editing with Insert key
+        tree.setEditable(true);
+        tree.setCellEditor(new ConfigEntryCellEditor());
+        tree.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_INSERT) {
+                    startEditingSelectedEntry();
+                }
+            }
+        });
 
         // Context menu for marking/unmarking entries
         setupContextMenu();
@@ -90,6 +108,28 @@ public final class TreePanel extends JPanel {
      */
     public void setFormatSupplier(Supplier<Boolean> supplier) {
         this.isYamlFormatSupplier = supplier;
+    }
+
+    /**
+     * Sets the callback to be invoked when a value is edited inline.
+     *
+     * @param callback receives the ConfigEntry and the new value
+     */
+    public void setValueEditCallback(BiConsumer<ConfigEntry, String> callback) {
+        this.valueEditCallback = callback;
+    }
+
+    /**
+     * Starts inline editing for the currently selected entry.
+     */
+    private void startEditingSelectedEntry() {
+        TreePath path = tree.getSelectionPath();
+        if (path != null) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+            if (node.getUserObject() instanceof ConfigEntry) {
+                tree.startEditingAtPath(path);
+            }
+        }
     }
 
     /**
@@ -347,6 +387,85 @@ public final class TreePanel extends JPanel {
                 return base + " [ENC]";
             }
             return base;
+        }
+    }
+
+    /**
+     * Custom TreeCellEditor that allows editing only the value of ConfigEntry
+     * nodes. Editing is triggered by the Insert key and only works on ConfigEntry
+     * nodes.
+     */
+    @SuppressWarnings("PMD.NullAssignment")
+    private final class ConfigEntryCellEditor extends DefaultCellEditor {
+        private static final long serialVersionUID = 1L;
+        private transient ConfigEntry currentEntry;
+        private String originalValue;
+        private boolean cancelled;
+
+        ConfigEntryCellEditor() {
+            super(new JTextField());
+            // Add key listener to catch Escape before DefaultCellEditor processes it
+            JTextField textField = (JTextField) getComponent();
+            textField.addKeyListener(new java.awt.event.KeyAdapter() {
+                @Override
+                public void keyPressed(java.awt.event.KeyEvent e) {
+                    if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
+                        cancelled = true;
+                    }
+                }
+            });
+        }
+
+        @Override
+        public boolean isCellEditable(EventObject event) {
+            return event == null;
+        }
+
+        @Override
+        public Component getTreeCellEditorComponent(JTree editTree, Object value, boolean isSelected, boolean expanded,
+                boolean leaf, int row) {
+            cancelled = false;
+            if (value instanceof DefaultMutableTreeNode) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
+                Object userObject = node.getUserObject();
+
+                if (userObject instanceof ConfigEntry) {
+                    currentEntry = (ConfigEntry) userObject;
+                    originalValue = currentEntry.getValue();
+                    JTextField textField = (JTextField) getComponent();
+                    textField.setText(originalValue);
+                    return textField;
+                }
+            }
+            currentEntry = null;
+            originalValue = null;
+            return super.getTreeCellEditorComponent(editTree, value, isSelected, expanded, leaf, row);
+        }
+
+        @Override
+        public void cancelCellEditing() {
+            cancelled = true;
+            super.cancelCellEditing();
+        }
+
+        @Override
+        public boolean stopCellEditing() {
+            if (!cancelled) {
+                JTextField textField = (JTextField) getComponent();
+                String newValue = textField.getText();
+
+                if (currentEntry != null && valueEditCallback != null && !newValue.equals(originalValue)) {
+                    valueEditCallback.accept(currentEntry, newValue);
+                }
+            }
+
+            return super.stopCellEditing();
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            JTextField textField = (JTextField) getComponent();
+            return cancelled ? originalValue : textField.getText();
         }
     }
 
