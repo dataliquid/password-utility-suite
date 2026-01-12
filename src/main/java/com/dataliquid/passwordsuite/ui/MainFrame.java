@@ -18,6 +18,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 
@@ -164,6 +165,18 @@ public final class MainFrame extends JFrame {
                 .setCryptoToggleCallback(entry -> cryptoHandler
                         .handleTreeDoubleClick(entry, tabbedEditorPanel.getActiveTab(), treePanel::refresh,
                                 this::showError));
+
+        // Tree inline value edit callback - for Insert key editing
+        treePanel.setValueEditCallback((entry, newValue) -> {
+            FileTab activeTab = tabbedEditorPanel.getActiveTab();
+            if (activeTab != null) {
+                String oldValue = entry.getValue();
+                entry.setValue(newValue);
+                editorService.replaceValueInEditor(entry, oldValue, newValue, activeTab.getEditor());
+                // Defer refresh to avoid recursion during cell editor completion
+                SwingUtilities.invokeLater(treePanel::refresh);
+            }
+        });
 
         // Tree double-click listener - toggle encrypt/decrypt
         treePanel.tree.addMouseListener(new MouseAdapter() {

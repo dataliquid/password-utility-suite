@@ -11,6 +11,7 @@ import org.assertj.swing.edt.GuiActionRunner;
 import org.assertj.swing.fixture.DialogFixture;
 import org.assertj.swing.fixture.FrameFixture;
 import org.assertj.swing.fixture.JPopupMenuFixture;
+import org.assertj.swing.fixture.JTextComponentFixture;
 import org.assertj.swing.fixture.JTreeFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -788,6 +789,146 @@ class TreePanelIT extends AbstractSwingIT {
             assertThat(clipboardContent).contains("=");
             assertThat(clipboardContent).contains("host");
             assertThat(clipboardContent).contains("localhost");
+        }
+    }
+
+    @Nested
+    class InlineEditing {
+
+        @Test
+        void shouldStartEditingOnInsertKey() throws InterruptedException {
+            // 1. Content erstellen
+            window.menuItemWithPath("File", "New").click();
+            window.textBox("fileEditor").enterText(SAMPLE_YAML);
+            Thread.sleep(800);
+
+            // 2. Tree expandieren und Entry selektieren
+            JTreeFixture tree = window.tree("configTree");
+            tree.expandRow(0);
+            tree.expandRow(1);
+            Thread.sleep(200);
+            tree.clickRow(2); // host entry
+
+            // 3. Insert-Taste druecken
+            robot.pressKey(java.awt.event.KeyEvent.VK_INSERT);
+            robot.releaseKey(java.awt.event.KeyEvent.VK_INSERT);
+            robot.waitForIdle();
+            Thread.sleep(200);
+
+            // 4. Pruefen ob Editing aktiv ist
+            boolean isEditing = GuiActionRunner.execute(() -> tree.target().isEditing());
+            assertThat(isEditing).as("Tree should be in editing mode after Insert key").isTrue();
+        }
+
+        @Test
+        void shouldUpdateValueOnEnter() throws InterruptedException {
+            // 1. Content erstellen
+            window.menuItemWithPath("File", "New").click();
+            window.textBox("fileEditor").enterText(SAMPLE_YAML);
+            Thread.sleep(800);
+
+            // 2. Tree expandieren und Entry selektieren
+            JTreeFixture tree = window.tree("configTree");
+            tree.expandRow(0);
+            tree.expandRow(1);
+            Thread.sleep(200);
+            tree.clickRow(2); // host entry
+
+            // 3. Insert-Taste druecken zum Start des Editings
+            robot.pressKey(java.awt.event.KeyEvent.VK_INSERT);
+            robot.releaseKey(java.awt.event.KeyEvent.VK_INSERT);
+            robot.waitForIdle();
+            Thread.sleep(200);
+
+            // 4. Neuen Wert eingeben
+            robot.enterText("newhost");
+            Thread.sleep(100);
+
+            // 5. Enter druecken zum Bestaetigen
+            robot.pressKey(java.awt.event.KeyEvent.VK_ENTER);
+            robot.releaseKey(java.awt.event.KeyEvent.VK_ENTER);
+            robot.waitForIdle();
+            Thread.sleep(300);
+
+            // 6. Pruefen ob Editor-Text aktualisiert wurde
+            String editorContent = window.textBox("fileEditor").text();
+            assertThat(editorContent).contains("newhost");
+            assertThat(editorContent).doesNotContain("localhost");
+        }
+
+        @Test
+        void shouldCancelEditingOnEscape() throws InterruptedException {
+            // 1. Content erstellen
+            window.menuItemWithPath("File", "New").click();
+            window.textBox("fileEditor").enterText(SAMPLE_YAML);
+            Thread.sleep(800);
+
+            // 2. Tree expandieren und Entry selektieren
+            JTreeFixture tree = window.tree("configTree");
+            tree.expandRow(0);
+            tree.expandRow(1);
+            Thread.sleep(200);
+            tree.clickRow(2); // host entry
+
+            // 3. Insert-Taste druecken zum Start des Editings
+            robot.pressKey(java.awt.event.KeyEvent.VK_INSERT);
+            robot.releaseKey(java.awt.event.KeyEvent.VK_INSERT);
+            robot.waitForIdle();
+            Thread.sleep(300);
+
+            // 4. Verify editing is active
+            boolean isEditing = GuiActionRunner.execute(() -> tree.target().isEditing());
+            assertThat(isEditing).as("Tree should be in editing mode").isTrue();
+
+            // 5. Focus on the cell editor textfield and type
+            javax.swing.JTextField cellEditorField = GuiActionRunner.execute(() -> {
+                javax.swing.CellEditor cellEditor = tree.target().getCellEditor();
+                if (cellEditor instanceof javax.swing.DefaultCellEditor) {
+                    return (javax.swing.JTextField) ((javax.swing.DefaultCellEditor) cellEditor).getComponent();
+                }
+                return null;
+            });
+            assertThat(cellEditorField).isNotNull();
+
+            // 5. Press Escape to cancel without any text changes
+            robot.pressKey(java.awt.event.KeyEvent.VK_ESCAPE);
+            robot.releaseKey(java.awt.event.KeyEvent.VK_ESCAPE);
+            robot.waitForIdle();
+            Thread.sleep(300);
+
+            // 6. Verify editing was cancelled
+            boolean isEditingAfter = GuiActionRunner.execute(() -> tree.target().isEditing());
+            assertThat(isEditingAfter).as("Tree should not be in editing mode after Escape").isFalse();
+
+            // 7. Verify editor unchanged
+            String editorContent = window.textBox("fileEditor").text();
+            assertThat(editorContent).contains("localhost");
+        }
+
+        @Test
+        void shouldNotEditGroupNodes() throws InterruptedException {
+            // 1. Content erstellen
+            window.menuItemWithPath("File", "New").click();
+            window.textBox("fileEditor").enterText(SAMPLE_YAML);
+            Thread.sleep(800);
+
+            // 2. Tree expandieren
+            JTreeFixture tree = window.tree("configTree");
+            tree.expandRow(0);
+            Thread.sleep(200);
+
+            // 3. Group-Node selektieren (database)
+            tree.clickRow(1);
+
+            // 4. Insert-Taste druecken
+            robot.pressKey(java.awt.event.KeyEvent.VK_INSERT);
+            robot.releaseKey(java.awt.event.KeyEvent.VK_INSERT);
+            robot.waitForIdle();
+            Thread.sleep(200);
+
+            // 5. Pruefen dass KEIN Editing aktiv ist
+            boolean isEditing = GuiActionRunner.execute(() -> tree.target().isEditing());
+            assertThat(isEditing).as("Group nodes should not be editable").isFalse();
         }
     }
 }
