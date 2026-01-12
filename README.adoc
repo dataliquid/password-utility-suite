@@ -1,7 +1,8 @@
 = Password Utility Suite
 
 image:https://github.com/dataliquid/password-utility-suite/actions/workflows/ci.yml/badge.svg[CI Build,link=https://github.com/dataliquid/password-utility-suite/actions/workflows/ci.yml]
-image:https://img.shields.io/maven-central/v/com.dataliquid/password-utility-suite.svg[Maven Central,link=https://search.maven.org/artifact/com.dataliquid/password-utility-suite]
+image:https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white[Java 17+]
+image:https://img.shields.io/badge/Maven-3.9%2B-C71A36?logo=apache-maven&logoColor=white[Maven 3.9+]
 
 A Java Swing application for encrypting and decrypting sensitive values in YAML and Properties configuration files. Manage secrets across multiple environments (development, staging, production) with environment-specific master passwords and support for various encryption algorithms.
 
