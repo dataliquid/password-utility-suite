@@ -35,6 +35,7 @@ import com.dataliquid.passwordsuite.service.FileIOService;
 import com.dataliquid.passwordsuite.ui.handler.CryptoOperationHandler;
 import com.dataliquid.passwordsuite.ui.handler.EditOperationHandler;
 import com.dataliquid.passwordsuite.ui.handler.EnvironmentsHandler;
+import com.dataliquid.passwordsuite.ui.handler.FileDropHandler;
 import com.dataliquid.passwordsuite.ui.handler.FileOperationHandler;
 import com.dataliquid.passwordsuite.ui.handler.PasswordManager;
 
@@ -116,6 +117,9 @@ public final class MainFrame extends JFrame {
 
         // Menu bar
         setupMenuBar();
+
+        // Drag and drop support
+        setupDragAndDrop();
 
         logger.info("MainFrame initialized successfully");
     }
@@ -227,6 +231,23 @@ public final class MainFrame extends JFrame {
         menuBar.add(editMenu);
         menuBar.add(settingsMenu);
         setJMenuBar(menuBar);
+    }
+
+    private void setupDragAndDrop() {
+        FileDropHandler dropHandler = new FileDropHandler(file -> {
+            try {
+                fileHandler.openFile(file);
+            } catch (java.io.IOException e) {
+                if (logger.isErrorEnabled()) {
+                    logger.error("Failed to open dropped file: {}", file.getName(), e);
+                }
+                showError("Failed to open file: " + file.getName());
+            }
+        });
+        ((JComponent) getContentPane()).setTransferHandler(dropHandler);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Drag and drop support enabled");
+        }
     }
 
     private JMenuItem createMenuItem(String text, char mnemonic, java.awt.event.ActionListener listener) {
