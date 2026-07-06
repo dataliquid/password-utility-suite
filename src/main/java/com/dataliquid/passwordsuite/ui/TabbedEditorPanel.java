@@ -64,20 +64,6 @@ public final class TabbedEditorPanel extends JPanel {
     }
 
     /**
-     * Adds a FileTab instance to the tabbed pane.
-     */
-    public void addTab(FileTab fileTab) {
-        int tabId = nextTabId++;
-        tabMap.put(tabId, fileTab);
-
-        int index = tabbedPane.getTabCount();
-        tabbedPane.addTab(fileTab.getTabTitle(), fileTab.getScrollPane());
-        tabbedPane.setTabComponentAt(index, createTabComponent(tabId, fileTab));
-
-        tabbedPane.setSelectedIndex(index);
-    }
-
-    /**
      * Creates a tab component with title and close button.
      */
     private JPanel createTabComponent(int tabId, FileTab fileTab) {
@@ -216,21 +202,4 @@ public final class TabbedEditorPanel extends JPanel {
         return -1;
     }
 
-    /**
-     * Returns all open FileTabs.
-     */
-    public java.util.Collection<FileTab> getAllTabs() {
-        return tabMap.values();
-    }
-
-    /**
-     * Closes all tabs (used for "New" or "Exit").
-     */
-    public void closeAllTabs() {
-        // Create a copy of the keyset to avoid concurrent modification
-        java.util.Set<Integer> tabIds = new java.util.HashSet<>(tabMap.keySet());
-        for (int tabId : tabIds) {
-            closeTab(tabId);
-        }
-    }
 }

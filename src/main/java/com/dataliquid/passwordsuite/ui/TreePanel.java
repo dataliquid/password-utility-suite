@@ -48,7 +48,6 @@ public final class TreePanel extends JPanel {
     final JTree tree; // Package-private for MainFrame access
     private final DefaultMutableTreeNode rootNode;
     private final DefaultTreeModel treeModel;
-    private Consumer<Void> markerChangeCallback;
     private Consumer<ConfigEntry> cryptoToggleCallback;
     private Supplier<Boolean> isYamlFormatSupplier;
     private BiConsumer<ConfigEntry, String> valueEditCallback;
@@ -87,13 +86,6 @@ public final class TreePanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(tree);
         scrollPane.setName("treeScrollPane");
         add(scrollPane, BorderLayout.CENTER);
-    }
-
-    /**
-     * Sets the callback to be invoked when marker state changes.
-     */
-    public void setMarkerChangeCallback(Consumer<Void> callback) {
-        this.markerChangeCallback = callback;
     }
 
     /**
@@ -249,9 +241,6 @@ public final class TreePanel extends JPanel {
                 entry.setMarkedForEncryption(!entry.isMarkedForEncryption());
             }
             refresh();
-            if (markerChangeCallback != null) {
-                markerChangeCallback.accept(null);
-            }
         }
     }
 
@@ -512,26 +501,6 @@ public final class TreePanel extends JPanel {
         for (int i = 0; i < tree.getRowCount(); i++) {
             tree.expandRow(i);
         }
-    }
-
-    /**
-     * Returns the currently selected ConfigEntry, or null if none or a group is
-     * selected.
-     */
-    public ConfigEntry getSelectedEntry() {
-        TreePath path = tree.getSelectionPath();
-        if (path == null) {
-            return null;
-        }
-
-        DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
-        Object userObject = node.getUserObject();
-
-        if (userObject instanceof ConfigEntry) {
-            return (ConfigEntry) userObject;
-        }
-
-        return null;
     }
 
     /**

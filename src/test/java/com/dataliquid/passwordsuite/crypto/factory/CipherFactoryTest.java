@@ -61,10 +61,4 @@ class CipherFactoryTest {
                 .isInstanceOf(CryptoException.class)
                 .hasMessageContaining("Unknown algorithm");
     }
-
-    @Test
-    void shouldReturnRegistry() {
-        assertThat(factory.getRegistry()).isNotNull();
-        assertThat(factory.getRegistry().getAvailableAlgorithms()).isNotEmpty();
-    }
 }

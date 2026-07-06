@@ -4,14 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.JTextArea;
@@ -59,55 +54,6 @@ class CryptoOperationHandlerTest {
     }
 
     @Test
-    void shouldProcessEntriesForEncryption() {
-        ConfigEntry entry1 = new ConfigEntry("key1", "value1");
-        ConfigEntry entry2 = new ConfigEntry("key2", "value2");
-        entry2.setEncrypted(true); // Already encrypted, should be skipped
-        List<ConfigEntry> entries = Arrays.asList(entry1, entry2);
-
-        EditValueOperation mockOp = mock(EditValueOperation.class);
-        when(cryptoService.createEncryptOperation(entry1)).thenReturn(mockOp);
-
-        AtomicBoolean refreshCalled = new AtomicBoolean(false);
-
-        int count = handler.processEntries(entries, true, editor, () -> refreshCalled.set(true));
-
-        assertThat(count).isEqualTo(1); // Only entry1 should be processed
-        verify(cryptoService).createEncryptOperation(entry1);
-        verify(cryptoService, never()).createEncryptOperation(entry2);
-        verify(editorService).executeOperation(mockOp);
-        assertThat(refreshCalled.get()).isTrue();
-    }
-
-    @Test
-    void shouldProcessEntriesForDecryption() {
-        ConfigEntry entry1 = new ConfigEntry("key1", "ENC[encrypted]");
-        entry1.setEncrypted(true);
-        ConfigEntry entry2 = new ConfigEntry("key2", "plaintext"); // Not encrypted, should be skipped
-        List<ConfigEntry> entries = Arrays.asList(entry1, entry2);
-
-        EditValueOperation mockOp = mock(EditValueOperation.class);
-        when(cryptoService.createDecryptOperation(entry1)).thenReturn(mockOp);
-
-        AtomicBoolean refreshCalled = new AtomicBoolean(false);
-
-        int count = handler.processEntries(entries, false, editor, () -> refreshCalled.set(true));
-
-        assertThat(count).isEqualTo(1); // Only entry1 should be processed
-        verify(cryptoService).createDecryptOperation(entry1);
-        verify(cryptoService, never()).createDecryptOperation(entry2);
-        verify(editorService).executeOperation(mockOp);
-        assertThat(refreshCalled.get()).isTrue();
-    }
-
-    @Test
-    void shouldReturnZeroForEmptyList() {
-        int count = handler.processEntries(Collections.emptyList(), true, editor, () -> {
-        });
-        assertThat(count).isZero();
-    }
-
-    @Test
     void shouldToggleEncryptionFromPlainToEncrypted() {
         ConfigEntry entry = new ConfigEntry("key", "plaintext");
         entry.setEncrypted(false);
@@ -150,25 +96,20 @@ class CryptoOperationHandlerTest {
         when(cryptoService.createEncryptOperation(entry)).thenReturn(mockOp);
 
         // Should not throw
-        int count = handler.processEntries(Collections.singletonList(entry), true, editor, null);
+        boolean encrypted = handler.toggleEncryption(entry, editor, null);
 
-        assertThat(count).isEqualTo(1);
+        assertThat(encrypted).isTrue();
     }
 
     @Test
-    void shouldUpdateEditorForEachProcessedEntry() {
-        ConfigEntry entry1 = new ConfigEntry("key1", "value1");
-        ConfigEntry entry2 = new ConfigEntry("key2", "value2");
-        List<ConfigEntry> entries = Arrays.asList(entry1, entry2);
+    void shouldUpdateEditorForToggledEntry() {
+        ConfigEntry entry = new ConfigEntry("key", "value");
+        EditValueOperation mockOp = mock(EditValueOperation.class);
+        when(cryptoService.createEncryptOperation(entry)).thenReturn(mockOp);
 
-        EditValueOperation mockOp1 = mock(EditValueOperation.class);
-        EditValueOperation mockOp2 = mock(EditValueOperation.class);
-        when(cryptoService.createEncryptOperation(entry1)).thenReturn(mockOp1);
-        when(cryptoService.createEncryptOperation(entry2)).thenReturn(mockOp2);
-
-        handler.processEntries(entries, true, editor, () -> {
+        handler.toggleEncryption(entry, editor, () -> {
         });
 
-        verify(editorService, times(2)).replaceValueInEditor(any(ConfigEntry.class), any(), any(), eq(editor));
+        verify(editorService).replaceValueInEditor(any(ConfigEntry.class), any(), any(), eq(editor));
     }
 }

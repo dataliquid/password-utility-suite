@@ -1,8 +1,6 @@
 package com.dataliquid.passwordsuite.ui.handler;
 
 import java.awt.Component;
-import java.awt.Toolkit;
-import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.io.IOException;
 import java.util.function.BiConsumer;
@@ -263,35 +261,6 @@ public class FileOperationHandler {
         logger.info("Application exit requested");
         if (parentComponent instanceof JFrame) {
             ((JFrame) parentComponent).dispose();
-        }
-    }
-
-    /**
-     * Copies the configuration tree to the clipboard.
-     */
-    public void handleCopy() {
-        FileTab activeTab = tabbedEditorPanel.getActiveTab();
-        if (activeTab == null) {
-            showError(UIConstants.NO_ACTIVE_TAB_MSG);
-            return;
-        }
-
-        ConfigTree tree = activeTab.getConfigTree();
-
-        if (tree == null) {
-            showError("No configuration to copy. Please parse content first.");
-            return;
-        }
-
-        try {
-            String exported = exportService.export(tree);
-            StringSelection selection = new StringSelection(exported);
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
-            logger.info("Copied configuration to clipboard");
-            showInfo("Configuration copied to clipboard");
-        } catch (Exception ex) {
-            logger.error("Copy error", ex);
-            showError("Copy error: " + ex.getMessage());
         }
     }
 

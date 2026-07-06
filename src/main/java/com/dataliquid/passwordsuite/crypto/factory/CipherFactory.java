@@ -75,13 +75,4 @@ public class CipherFactory {
             throw new CryptoException("Failed to create cipher: " + e.getMessage(), e);
         }
     }
-
-    /**
-     * Returns the cipher registry.
-     *
-     * @return the registry
-     */
-    public CipherRegistry getRegistry() {
-        return registry;
-    }
 }
