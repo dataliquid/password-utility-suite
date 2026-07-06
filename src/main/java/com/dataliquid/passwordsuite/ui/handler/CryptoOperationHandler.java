@@ -9,8 +9,10 @@ import org.slf4j.LoggerFactory;
 
 import com.dataliquid.passwordsuite.domain.ConfigEntry;
 import com.dataliquid.passwordsuite.domain.operation.Operation;
+import com.dataliquid.passwordsuite.environment.EnvironmentManager;
 import com.dataliquid.passwordsuite.service.CryptoService;
 import com.dataliquid.passwordsuite.service.EditorService;
+import com.dataliquid.passwordsuite.ui.EditorTextUtil;
 import com.dataliquid.passwordsuite.ui.FileTab;
 import com.dataliquid.passwordsuite.ui.UIConstants;
 
@@ -26,13 +28,13 @@ public class CryptoOperationHandler {
 
     private final CryptoService cryptoService;
     private final EditorService editorService;
-    private final PasswordManager passwordManager;
+    private final EnvironmentManager environmentManager;
 
     public CryptoOperationHandler(CryptoService cryptoService, EditorService editorService,
-            PasswordManager passwordManager) {
+            EnvironmentManager environmentManager) {
         this.cryptoService = cryptoService;
         this.editorService = editorService;
-        this.passwordManager = passwordManager;
+        this.environmentManager = environmentManager;
     }
 
     /**
@@ -55,7 +57,9 @@ public class CryptoOperationHandler {
         editorService.executeOperation(operation);
         String newValue = entry.getValue();
 
-        editorService.replaceValueInEditor(entry, oldValue, newValue, editor);
+        editorService
+                .replaceValueInContent(entry, oldValue, newValue, editor.getText())
+                .ifPresent(updated -> EditorTextUtil.setTextPreservingCaret(editor, updated));
 
         if (refreshCallback != null) {
             refreshCallback.run();
@@ -102,7 +106,7 @@ public class CryptoOperationHandler {
                 logger
                         .info("{} key='{}' env='{}' algo='{}' format='{}{}'",
                                 encrypted ? ENCRYPTED_VERB : DECRYPTED_VERB, entry.getKey(),
-                                passwordManager.getActiveEnvironment(), cryptoService.getCurrentAlgorithm(),
+                                environmentManager.getActiveEnvironment(), cryptoService.getCurrentAlgorithm(),
                                 cryptoService.getFormatPrefix(), cryptoService.getFormatSuffix());
             }
         } catch (Exception ex) {

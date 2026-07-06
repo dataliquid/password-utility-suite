@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.dataliquid.passwordsuite.crypto.CryptoException;
 import com.dataliquid.passwordsuite.crypto.factory.CipherRegistry;
 import com.dataliquid.passwordsuite.domain.ConfigTree;
+import com.dataliquid.passwordsuite.environment.EnvironmentManager;
 import com.dataliquid.passwordsuite.service.CryptoService;
 import com.dataliquid.passwordsuite.service.CryptoServiceFactory;
 import com.dataliquid.passwordsuite.ui.ActionPanel;
@@ -35,7 +36,7 @@ public class EnvironmentsHandler {
     private final TreePanel treePanel;
     private final TabbedEditorPanel tabbedEditorPanel;
     private final CryptoService cryptoService;
-    private final PasswordManager passwordManager;
+    private final EnvironmentManager environmentManager;
     private final CryptoServiceFactory cryptoServiceFactory;
     private final CipherRegistry cipherRegistry;
     private final Frame parentFrame;
@@ -45,23 +46,23 @@ public class EnvironmentsHandler {
     /**
      * Creates a new EnvironmentsHandler.
      *
-     * @param actionPanel       the action panel with dropdowns
-     * @param treePanel         the tree panel for configuration display
-     * @param tabbedEditorPanel the tabbed editor panel
-     * @param cryptoService     the crypto service
-     * @param passwordManager   the password manager
-     * @param cipherRegistry    the cipher registry
-     * @param parentFrame       the parent frame for dialogs
-     * @param autoParseCallback callback to auto-parse tab content
+     * @param actionPanel        the action panel with dropdowns
+     * @param treePanel          the tree panel for configuration display
+     * @param tabbedEditorPanel  the tabbed editor panel
+     * @param cryptoService      the crypto service
+     * @param environmentManager the environment manager
+     * @param cipherRegistry     the cipher registry
+     * @param parentFrame        the parent frame for dialogs
+     * @param autoParseCallback  callback to auto-parse tab content
      */
     public EnvironmentsHandler(ActionPanel actionPanel, TreePanel treePanel, TabbedEditorPanel tabbedEditorPanel,
-            CryptoService cryptoService, PasswordManager passwordManager, CipherRegistry cipherRegistry,
+            CryptoService cryptoService, EnvironmentManager environmentManager, CipherRegistry cipherRegistry,
             Frame parentFrame, BiConsumer<FileTab, String> autoParseCallback) {
         this.actionPanel = actionPanel;
         this.treePanel = treePanel;
         this.tabbedEditorPanel = tabbedEditorPanel;
         this.cryptoService = cryptoService;
-        this.passwordManager = passwordManager;
+        this.environmentManager = environmentManager;
         this.cryptoServiceFactory = new CryptoServiceFactory(cipherRegistry);
         this.cipherRegistry = cipherRegistry;
         this.parentFrame = parentFrame;
@@ -84,18 +85,18 @@ public class EnvironmentsHandler {
      * @param infoCallback  callback to display info messages
      */
     public void handleEnvironments(Consumer<String> errorCallback, Consumer<String> infoCallback) {
-        EnvironmentsDialog dialog = new EnvironmentsDialog(parentFrame, passwordManager.getEnvironmentsCopy(),
-                passwordManager.getActiveEnvironment(), cipherRegistry);
+        EnvironmentsDialog dialog = new EnvironmentsDialog(parentFrame, environmentManager.getEnvironmentsCopy(),
+                environmentManager.getActiveEnvironment(), cipherRegistry);
         dialog.setVisible(true);
 
         if (dialog.isConfirmed()) {
             // Update password manager with new environments
-            passwordManager.updateFromDialog(dialog.getEnvironments(), dialog.getSelectedEnvironment());
+            environmentManager.updateFromDialog(dialog.getEnvironments(), dialog.getSelectedEnvironment());
 
             // Synchronize environment dropdown
-            actionPanel.updateEnvironments(passwordManager.getEnvironmentNames());
-            if (passwordManager.getActiveEnvironment() != null) {
-                actionPanel.setSelectedEnvironment(passwordManager.getActiveEnvironment());
+            actionPanel.updateEnvironments(environmentManager.getEnvironmentNames());
+            if (environmentManager.getActiveEnvironment() != null) {
+                actionPanel.setSelectedEnvironment(environmentManager.getActiveEnvironment());
             }
 
             // Configure CryptoService with password and format from active environment
@@ -103,8 +104,8 @@ public class EnvironmentsHandler {
                 updateCryptoServicePassword();
 
                 // Set default algorithm from active environment (only if environments exist)
-                if (passwordManager.hasEnvironments()) {
-                    String defaultAlgorithm = passwordManager.getActiveDefaultAlgorithm();
+                if (environmentManager.hasEnvironments()) {
+                    String defaultAlgorithm = environmentManager.getActiveDefaultAlgorithm();
                     actionPanel.setSelectedAlgorithm(defaultAlgorithm);
                     cryptoService.setAlgorithm(defaultAlgorithm);
                     // Also save in active tab
@@ -130,7 +131,7 @@ public class EnvironmentsHandler {
             if (logger.isInfoEnabled()) {
                 logger
                         .info("Environments updated - {} environments configured, active: {}",
-                                passwordManager.getEnvironmentCount(), passwordManager.getActiveEnvironment());
+                                environmentManager.getEnvironmentCount(), environmentManager.getActiveEnvironment());
             }
 
             // Update status bar with new environment count
@@ -165,7 +166,7 @@ public class EnvironmentsHandler {
                 if (logger.isInfoEnabled()) {
                     logger
                             .info("Algorithm changed to: '{}' env='{}' for tab: {}", selected,
-                                    passwordManager.getActiveEnvironment(), activeTab.getTabTitle());
+                                    environmentManager.getActiveEnvironment(), activeTab.getTabTitle());
                 }
             } catch (CryptoException e) {
                 if (logger.isErrorEnabled()) {
@@ -186,7 +187,7 @@ public class EnvironmentsHandler {
         logger.debug("Environment change requested: {}", selected);
 
         // Update password manager first
-        passwordManager.setActiveEnvironment(selected);
+        environmentManager.setActiveEnvironment(selected);
 
         // Update CryptoService with new password and format from selected environment
         if (selected != null) {
@@ -200,8 +201,8 @@ public class EnvironmentsHandler {
         }
 
         // Update algorithm to environment's default (only if environment exists)
-        if (passwordManager.hasEnvironments() && selected != null && !"No Environment".equals(selected)) {
-            String defaultAlgorithm = passwordManager.getActiveDefaultAlgorithm();
+        if (environmentManager.hasEnvironments() && selected != null && !"No Environment".equals(selected)) {
+            String defaultAlgorithm = environmentManager.getActiveDefaultAlgorithm();
             actionPanel.setSelectedAlgorithm(defaultAlgorithm);
             try {
                 cryptoService.setAlgorithm(defaultAlgorithm);
@@ -215,7 +216,7 @@ public class EnvironmentsHandler {
             logger.info("Clearing algorithm selection - no environment");
             actionPanel.clearAlgorithmSelection();
         }
-        String defaultAlgorithm = passwordManager.hasEnvironments() ? passwordManager.getActiveDefaultAlgorithm()
+        String defaultAlgorithm = environmentManager.hasEnvironments() ? environmentManager.getActiveDefaultAlgorithm()
                 : null;
 
         // Update active tab if exists
@@ -234,7 +235,7 @@ public class EnvironmentsHandler {
         if (logger.isInfoEnabled()) {
             logger
                     .info("Environment switched to: '{}' algo='{}' format='{}{}'", selected, defaultAlgorithm,
-                            passwordManager.getActiveFormatPrefix(), passwordManager.getActiveFormatSuffix());
+                            environmentManager.getActiveFormatPrefix(), environmentManager.getActiveFormatSuffix());
         }
     }
 
@@ -294,9 +295,10 @@ public class EnvironmentsHandler {
      * @throws CryptoException if password update fails
      */
     private void updateCryptoServicePassword() throws CryptoException {
-        if (passwordManager.hasEnvironments()) {
-            cryptoServiceFactory.updatePassword(cryptoService, passwordManager.getActivePassword());
-            cryptoService.setFormat(passwordManager.getActiveFormatPrefix(), passwordManager.getActiveFormatSuffix());
+        if (environmentManager.hasEnvironments()) {
+            cryptoServiceFactory.updatePassword(cryptoService, environmentManager.getActivePassword());
+            cryptoService
+                    .setFormat(environmentManager.getActiveFormatPrefix(), environmentManager.getActiveFormatSuffix());
         }
     }
 }

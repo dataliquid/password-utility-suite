@@ -1,4 +1,4 @@
-package com.dataliquid.passwordsuite.ui.handler;
+package com.dataliquid.passwordsuite.environment;
 
 import java.util.Arrays;
 

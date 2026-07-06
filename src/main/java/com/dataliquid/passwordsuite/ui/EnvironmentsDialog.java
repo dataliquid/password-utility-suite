@@ -23,7 +23,7 @@ import javax.swing.JTextField;
 
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
 import com.dataliquid.passwordsuite.crypto.factory.CipherRegistry;
-import com.dataliquid.passwordsuite.ui.handler.EnvironmentConfig;
+import com.dataliquid.passwordsuite.environment.EnvironmentConfig;
 
 /**
  * Dialog for configuring multiple environments with master passwords and format

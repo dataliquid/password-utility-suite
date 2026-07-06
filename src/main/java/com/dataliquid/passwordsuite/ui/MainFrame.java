@@ -38,7 +38,7 @@ import com.dataliquid.passwordsuite.ui.handler.EditOperationHandler;
 import com.dataliquid.passwordsuite.ui.handler.EnvironmentsHandler;
 import com.dataliquid.passwordsuite.ui.handler.FileDropHandler;
 import com.dataliquid.passwordsuite.ui.handler.FileOperationHandler;
-import com.dataliquid.passwordsuite.ui.handler.PasswordManager;
+import com.dataliquid.passwordsuite.environment.EnvironmentManager;
 
 /**
  * Main application frame integrating all UI components and services. Delegates
@@ -65,7 +65,7 @@ public final class MainFrame extends JFrame {
     private final transient EditOperationHandler editHandler;
     private final transient CryptoOperationHandler cryptoHandler;
     private final transient EnvironmentsHandler environmentsHandler;
-    private final transient PasswordManager passwordManager;
+    private final transient EnvironmentManager environmentManager;
 
     public MainFrame() {
         // Initialize cipher registry
@@ -80,7 +80,7 @@ public final class MainFrame extends JFrame {
         FileIOService fileIOService = new FileIOService();
 
         // Initialize password manager
-        passwordManager = new PasswordManager();
+        environmentManager = new EnvironmentManager();
 
         // Setup frame
         setTitle("Password Utility Suite");
@@ -99,15 +99,15 @@ public final class MainFrame extends JFrame {
 
         // Initialize handlers with dependencies
         fileHandler = new FileOperationHandler(tabbedEditorPanel, treePanel, editorService, exportService,
-                fileIOService, passwordManager, this, this::autoParseTab);
+                fileIOService, environmentManager, this, this::autoParseTab);
         fileHandler.setStatusBarUpdateCallback(this::updateStatusBar);
 
         editHandler = new EditOperationHandler(editorService, treePanel);
 
-        cryptoHandler = new CryptoOperationHandler(cryptoService, editorService, passwordManager);
+        cryptoHandler = new CryptoOperationHandler(cryptoService, editorService, environmentManager);
 
         environmentsHandler = new EnvironmentsHandler(actionPanel, treePanel, tabbedEditorPanel, cryptoService,
-                passwordManager, cipherRegistry, this, this::autoParseTab);
+                environmentManager, cipherRegistry, this, this::autoParseTab);
         environmentsHandler.setStatusBarUpdateCallback(this::updateStatusBar);
 
         // Layout
@@ -172,7 +172,9 @@ public final class MainFrame extends JFrame {
             if (activeTab != null) {
                 String oldValue = entry.getValue();
                 entry.setValue(newValue);
-                editorService.replaceValueInEditor(entry, oldValue, newValue, activeTab.getEditor());
+                editorService
+                        .replaceValueInContent(entry, oldValue, newValue, activeTab.getEditor().getText())
+                        .ifPresent(updated -> EditorTextUtil.setTextPreservingCaret(activeTab.getEditor(), updated));
                 // Defer refresh to avoid recursion during cell editor completion
                 SwingUtilities.invokeLater(treePanel::refresh);
             }
@@ -347,18 +349,15 @@ public final class MainFrame extends JFrame {
         try {
             // Save markers from old tree before reparsing
             ConfigTree oldTree = tab.getConfigTree();
-            java.util.Map<String, Boolean> markersByPath = new java.util.concurrent.ConcurrentHashMap<>();
-            if (oldTree != null) {
-                collectMarkers(oldTree.getRoot(), "", markersByPath);
-            }
+            java.util.Set<String> markedPaths = oldTree != null ? oldTree.getMarkedPaths() : java.util.Set.of();
 
             ConfigTree tree = editorService
-                    .parseContent(content, passwordManager.getActiveFormatPrefix(),
-                            passwordManager.getActiveFormatSuffix());
+                    .parseContent(content, environmentManager.getActiveFormatPrefix(),
+                            environmentManager.getActiveFormatSuffix());
 
             // Restore markers to new tree
-            if (!markersByPath.isEmpty()) {
-                restoreMarkers(tree.getRoot(), "", markersByPath);
+            if (!markedPaths.isEmpty()) {
+                tree.applyMarkedPaths(markedPaths);
             }
 
             tab.setConfigTree(tree);
@@ -369,46 +368,6 @@ public final class MainFrame extends JFrame {
         } catch (ParseException ex) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Auto-parse failed (file can still be manually parsed): {}", ex.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Collects markedForEncryption flags from a tree into a map keyed by path.
-     */
-    private void collectMarkers(com.dataliquid.passwordsuite.domain.ConfigNode node, String parentPath,
-            java.util.Map<String, Boolean> markers) {
-        String path = parentPath.isEmpty() ? node.getKey() : parentPath + "." + node.getKey();
-
-        if (node instanceof ConfigEntry) {
-            ConfigEntry entry = (ConfigEntry) node;
-            if (entry.isMarkedForEncryption()) {
-                markers.put(path, true);
-            }
-        } else if (node instanceof com.dataliquid.passwordsuite.domain.ConfigGroup) {
-            com.dataliquid.passwordsuite.domain.ConfigGroup group = (com.dataliquid.passwordsuite.domain.ConfigGroup) node;
-            for (com.dataliquid.passwordsuite.domain.ConfigNode child : group.getChildren()) {
-                collectMarkers(child, path, markers);
-            }
-        }
-    }
-
-    /**
-     * Restores markedForEncryption flags from a map to a tree.
-     */
-    private void restoreMarkers(com.dataliquid.passwordsuite.domain.ConfigNode node, String parentPath,
-            java.util.Map<String, Boolean> markers) {
-        String path = parentPath.isEmpty() ? node.getKey() : parentPath + "." + node.getKey();
-
-        if (node instanceof ConfigEntry) {
-            ConfigEntry entry = (ConfigEntry) node;
-            if (markers.containsKey(path)) {
-                entry.setMarkedForEncryption(true);
-            }
-        } else if (node instanceof com.dataliquid.passwordsuite.domain.ConfigGroup) {
-            com.dataliquid.passwordsuite.domain.ConfigGroup group = (com.dataliquid.passwordsuite.domain.ConfigGroup) node;
-            for (com.dataliquid.passwordsuite.domain.ConfigNode child : group.getChildren()) {
-                restoreMarkers(child, path, markers);
             }
         }
     }
@@ -445,7 +404,7 @@ public final class MainFrame extends JFrame {
         } else {
             statusBar.setFileName(null);
         }
-        statusBar.setEnvironmentCount(passwordManager.getEnvironmentCount());
+        statusBar.setEnvironmentCount(environmentManager.getEnvironmentCount());
     }
 
     /** Package-private to allow usage as method reference by handlers. */

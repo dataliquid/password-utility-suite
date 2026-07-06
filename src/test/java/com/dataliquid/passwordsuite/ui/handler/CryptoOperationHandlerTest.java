@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.dataliquid.passwordsuite.domain.ConfigEntry;
 import com.dataliquid.passwordsuite.domain.operation.EditValueOperation;
+import com.dataliquid.passwordsuite.environment.EnvironmentManager;
 import com.dataliquid.passwordsuite.service.CryptoService;
 import com.dataliquid.passwordsuite.service.EditorService;
 
@@ -32,7 +33,7 @@ class CryptoOperationHandlerTest {
     private EditorService editorService;
 
     @Mock
-    private PasswordManager passwordManager;
+    private EnvironmentManager environmentManager;
 
     @Mock
     private JTextArea editor;
@@ -41,7 +42,7 @@ class CryptoOperationHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new CryptoOperationHandler(cryptoService, editorService, passwordManager);
+        handler = new CryptoOperationHandler(cryptoService, editorService, environmentManager);
     }
 
     @Test
@@ -110,6 +111,6 @@ class CryptoOperationHandlerTest {
         handler.toggleEncryption(entry, editor, () -> {
         });
 
-        verify(editorService).replaceValueInEditor(any(ConfigEntry.class), any(), any(), eq(editor));
+        verify(editorService).replaceValueInContent(any(ConfigEntry.class), any(), any(), any());
     }
 }

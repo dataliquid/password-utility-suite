@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataliquid.passwordsuite.domain.ConfigTree;
+import com.dataliquid.passwordsuite.environment.EnvironmentManager;
 import com.dataliquid.passwordsuite.service.EditorService;
 import com.dataliquid.passwordsuite.service.ExportService;
 import com.dataliquid.passwordsuite.service.FileIOService;
@@ -37,7 +38,7 @@ public class FileOperationHandler {
     private final EditorService editorService;
     private final ExportService exportService;
     private final FileIOService fileIOService;
-    private final PasswordManager passwordManager;
+    private final EnvironmentManager environmentManager;
     private final Component parentComponent;
     private final BiConsumer<FileTab, String> autoParseCallback;
 
@@ -47,24 +48,24 @@ public class FileOperationHandler {
     /**
      * Creates a new FileOperationHandler.
      *
-     * @param tabbedEditorPanel the tabbed editor panel
-     * @param treePanel         the tree panel for configuration display
-     * @param editorService     the editor service
-     * @param exportService     the export service
-     * @param fileIOService     the file I/O service
-     * @param passwordManager   the password manager
-     * @param parentComponent   the parent component for dialogs
-     * @param autoParseCallback callback to auto-parse tab content
+     * @param tabbedEditorPanel  the tabbed editor panel
+     * @param treePanel          the tree panel for configuration display
+     * @param editorService      the editor service
+     * @param exportService      the export service
+     * @param fileIOService      the file I/O service
+     * @param environmentManager the environment manager
+     * @param parentComponent    the parent component for dialogs
+     * @param autoParseCallback  callback to auto-parse tab content
      */
     public FileOperationHandler(TabbedEditorPanel tabbedEditorPanel, TreePanel treePanel, EditorService editorService,
-            ExportService exportService, FileIOService fileIOService, PasswordManager passwordManager,
+            ExportService exportService, FileIOService fileIOService, EnvironmentManager environmentManager,
             Component parentComponent, BiConsumer<FileTab, String> autoParseCallback) {
         this.tabbedEditorPanel = tabbedEditorPanel;
         this.treePanel = treePanel;
         this.editorService = editorService;
         this.exportService = exportService;
         this.fileIOService = fileIOService;
-        this.passwordManager = passwordManager;
+        this.environmentManager = environmentManager;
         this.parentComponent = parentComponent;
         this.autoParseCallback = autoParseCallback;
     }
@@ -256,7 +257,7 @@ public class FileOperationHandler {
      */
     public void handleExit() {
         // Clear sensitive data from memory
-        passwordManager.cleanup();
+        environmentManager.cleanup();
 
         logger.info("Application exit requested");
         if (parentComponent instanceof JFrame) {

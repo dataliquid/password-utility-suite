@@ -1,4 +1,4 @@
-package com.dataliquid.passwordsuite.ui.handler;
+package com.dataliquid.passwordsuite.environment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,9 +15,9 @@ import org.slf4j.LoggerFactory;
  * Provides secure cleanup to prevent passwords from lingering in memory.
  * </p>
  */
-public class PasswordManager {
+public class EnvironmentManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(PasswordManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(EnvironmentManager.class);
     private static final String NO_ENVIRONMENT = "No Environment";
 
     private final Map<String, EnvironmentConfig> environments = new ConcurrentHashMap<>();

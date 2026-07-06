@@ -1,7 +1,9 @@
 package com.dataliquid.passwordsuite.domain;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Represents the root container for a configuration tree. Contains the root
@@ -57,6 +59,32 @@ public class ConfigTree {
      */
     public int getEntryCount() {
         return getAllEntries().size();
+    }
+
+    /**
+     * Returns the paths of all entries marked for encryption. Together with
+     * {@link #applyMarkedPaths(Set)} this allows preserving markers across
+     * re-parsing.
+     */
+    public Set<String> getMarkedPaths() {
+        Set<String> paths = new HashSet<>();
+        for (ConfigEntry entry : getAllEntries()) {
+            if (entry.isMarkedForEncryption()) {
+                paths.add(entry.getPath());
+            }
+        }
+        return paths;
+    }
+
+    /**
+     * Marks all entries whose path is contained in the given set for encryption.
+     */
+    public void applyMarkedPaths(Set<String> paths) {
+        for (ConfigEntry entry : getAllEntries()) {
+            if (paths.contains(entry.getPath())) {
+                entry.setMarkedForEncryption(true);
+            }
+        }
     }
 
     /**
