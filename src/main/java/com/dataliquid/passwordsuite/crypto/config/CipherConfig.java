@@ -36,6 +36,21 @@ public class CipherConfig {
         this.keyConfig = keyConfig;
     }
 
+    /**
+     * Creates a cipher configuration from a registered algorithm configuration.
+     *
+     * @param algorithmConfig the algorithm parameters (algorithm, mode, padding,
+     *                        key size)
+     * @param formatPrefix    the prefix for encrypted values (e.g., "ENC[")
+     * @param formatSuffix    the suffix for encrypted values (e.g., "]")
+     * @param keyConfig       the key derivation configuration
+     */
+    public CipherConfig(AlgorithmConfig algorithmConfig, String formatPrefix, String formatSuffix,
+            KeyConfig keyConfig) {
+        this(algorithmConfig.getAlgorithm(), algorithmConfig.getMode(), algorithmConfig.getPadding(),
+                algorithmConfig.getKeySize(), formatPrefix, formatSuffix, keyConfig);
+    }
+
     public String getAlgorithm() {
         return algorithm;
     }

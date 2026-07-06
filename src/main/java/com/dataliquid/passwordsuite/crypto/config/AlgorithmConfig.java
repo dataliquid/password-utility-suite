@@ -12,7 +12,7 @@ public class AlgorithmConfig {
     private final String mode;
     private final String padding;
     private final int keySize;
-    private final CipherFactory factory;
+    private final CipherSupplier factory;
     private final String defaultFormatPrefix;
     private final String defaultFormatSuffix;
     private final int minPasswordLength;
@@ -20,10 +20,11 @@ public class AlgorithmConfig {
 
     /**
      * Functional interface for creating cipher instances. Key derivation is handled
-     * by the cipher implementation using the KeyConfig in CipherConfig.
+     * by the cipher implementation using the KeyConfig in CipherConfig. (Named
+     * CipherSupplier to avoid a name clash with the CipherFactory class.)
      */
     @FunctionalInterface
-    public interface CipherFactory {
+    public interface CipherSupplier {
         Cipher create(CipherConfig config) throws Exception;
     }
 
@@ -37,7 +38,7 @@ public class AlgorithmConfig {
      * @param keySize   the key size in bits
      * @param factory   factory function to create cipher instances
      */
-    public AlgorithmConfig(String algorithm, String mode, String padding, int keySize, CipherFactory factory) {
+    public AlgorithmConfig(String algorithm, String mode, String padding, int keySize, CipherSupplier factory) {
         this(algorithm, mode, padding, keySize, factory, FormatConfig.DEFAULT_PREFIX, FormatConfig.DEFAULT_SUFFIX, 0,
                 0);
     }
@@ -56,7 +57,7 @@ public class AlgorithmConfig {
      * @param minPasswordLength   minimum password length (0 = no constraint)
      * @param maxPasswordLength   maximum password length (0 = no constraint)
      */
-    public AlgorithmConfig(String algorithm, String mode, String padding, int keySize, CipherFactory factory,
+    public AlgorithmConfig(String algorithm, String mode, String padding, int keySize, CipherSupplier factory,
             String defaultFormatPrefix, String defaultFormatSuffix, int minPasswordLength, int maxPasswordLength) {
         this.algorithm = algorithm;
         this.mode = mode;
@@ -85,7 +86,7 @@ public class AlgorithmConfig {
         return keySize;
     }
 
-    public CipherFactory getFactory() {
+    public CipherSupplier getFactory() {
         return factory;
     }
 

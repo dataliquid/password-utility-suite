@@ -6,9 +6,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
-import com.dataliquid.passwordsuite.crypto.impl.AesCbcCipher;
+import com.dataliquid.passwordsuite.crypto.core.SymmetricCipher;
 import com.dataliquid.passwordsuite.crypto.impl.AesGcmCipher;
-import com.dataliquid.passwordsuite.crypto.impl.BlowfishCipher;
 import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcCipher;
 import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcPasswordIvCipher;
 
@@ -17,6 +16,9 @@ import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcPasswordIvCipher;
  * configurations.
  */
 public final class CipherRegistry {
+
+    private static final int AES_CBC_IV_LENGTH = 16; // 128 bits (AES block size)
+    private static final int BLOWFISH_IV_LENGTH = 8; // 64 bits (Blowfish block size)
 
     private final Map<String, AlgorithmConfig> algorithms = new ConcurrentHashMap<>();
 
@@ -36,13 +38,15 @@ public final class CipherRegistry {
         register("AES-256-GCM", new AlgorithmConfig("AES", "GCM", "NoPadding", 256, AesGcmCipher::new));
 
         // AES-256-CBC
-        register("AES-256-CBC", new AlgorithmConfig("AES", "CBC", "PKCS5Padding", 256, AesCbcCipher::new));
+        register("AES-256-CBC", new AlgorithmConfig("AES", "CBC", "PKCS5Padding", 256,
+                config -> new SymmetricCipher(config, AES_CBC_IV_LENGTH)));
 
         // AES-128-GCM
         register("AES-128-GCM", new AlgorithmConfig("AES", "GCM", "NoPadding", 128, AesGcmCipher::new));
 
         // Blowfish
-        register("Blowfish", new AlgorithmConfig("Blowfish", "CBC", "PKCS5Padding", 128, BlowfishCipher::new));
+        register("Blowfish", new AlgorithmConfig("Blowfish", "CBC", "PKCS5Padding", 128,
+                config -> new SymmetricCipher(config, BLOWFISH_IV_LENGTH)));
 
         // MuleSoft-compatible AES-CBC with password as IV (default MuleSoft mode)
         // This is the standard MuleSoft format when NOT using --use-random-iv

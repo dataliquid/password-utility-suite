@@ -65,8 +65,7 @@ public class CipherFactory {
             String suffix = formatSuffix != null ? formatSuffix : DEFAULT_FORMAT_SUFFIX;
 
             // Create cipher configuration with KeyConfig for per-operation key derivation
-            CipherConfig cipherConfig = new CipherConfig(algConfig.getAlgorithm(), algConfig.getMode(),
-                    algConfig.getPadding(), algConfig.getKeySize(), prefix, suffix, keyConfig);
+            CipherConfig cipherConfig = new CipherConfig(algConfig, prefix, suffix, keyConfig);
 
             // Create cipher instance (key derivation happens per encrypt/decrypt)
             return algConfig.getFactory().create(cipherConfig);
