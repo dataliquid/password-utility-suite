@@ -1,5 +1,7 @@
 package com.dataliquid.passwordsuite.crypto.config;
 
+import java.util.function.IntPredicate;
+
 import com.dataliquid.passwordsuite.crypto.Cipher;
 
 /**
@@ -15,8 +17,8 @@ public class AlgorithmConfig {
     private final CipherSupplier factory;
     private final String defaultFormatPrefix;
     private final String defaultFormatSuffix;
-    private final int minPasswordLength;
-    private final int maxPasswordLength;
+    private final IntPredicate passwordLengthRule;
+    private final String passwordRequirement;
 
     /**
      * Functional interface for creating cipher instances. Key derivation is handled
@@ -39,8 +41,8 @@ public class AlgorithmConfig {
      * @param factory   factory function to create cipher instances
      */
     public AlgorithmConfig(String algorithm, String mode, String padding, int keySize, CipherSupplier factory) {
-        this(algorithm, mode, padding, keySize, factory, FormatConfig.DEFAULT_PREFIX, FormatConfig.DEFAULT_SUFFIX, 0,
-                0);
+        this(algorithm, mode, padding, keySize, factory, FormatConfig.DEFAULT_PREFIX, FormatConfig.DEFAULT_SUFFIX, null,
+                null);
     }
 
     /**
@@ -54,11 +56,14 @@ public class AlgorithmConfig {
      * @param factory             factory function to create cipher instances
      * @param defaultFormatPrefix the default format prefix (e.g., "ENC[" or "![")
      * @param defaultFormatSuffix the default format suffix (e.g., "]")
-     * @param minPasswordLength   minimum password length (0 = no constraint)
-     * @param maxPasswordLength   maximum password length (0 = no constraint)
+     * @param passwordLengthRule  predicate validating the password length, or null
+     *                            if the password length is unconstrained
+     * @param passwordRequirement human-readable requirement (e.g., "16 or 32"), or
+     *                            null if unconstrained
      */
     public AlgorithmConfig(String algorithm, String mode, String padding, int keySize, CipherSupplier factory,
-            String defaultFormatPrefix, String defaultFormatSuffix, int minPasswordLength, int maxPasswordLength) {
+            String defaultFormatPrefix, String defaultFormatSuffix, IntPredicate passwordLengthRule,
+            String passwordRequirement) {
         this.algorithm = algorithm;
         this.mode = mode;
         this.padding = padding;
@@ -66,8 +71,8 @@ public class AlgorithmConfig {
         this.factory = factory;
         this.defaultFormatPrefix = defaultFormatPrefix;
         this.defaultFormatSuffix = defaultFormatSuffix;
-        this.minPasswordLength = minPasswordLength;
-        this.maxPasswordLength = maxPasswordLength;
+        this.passwordLengthRule = passwordLengthRule;
+        this.passwordRequirement = passwordRequirement;
     }
 
     public String getAlgorithm() {
@@ -98,21 +103,28 @@ public class AlgorithmConfig {
         return defaultFormatSuffix;
     }
 
-    public int getMinPasswordLength() {
-        return minPasswordLength;
+    /**
+     * Checks whether the given password length is valid for this algorithm.
+     *
+     * @param  length the password length
+     *
+     * @return        true if valid or unconstrained
+     */
+    public boolean isValidPasswordLength(int length) {
+        return passwordLengthRule == null || passwordLengthRule.test(length);
     }
 
-    public int getMaxPasswordLength() {
-        return maxPasswordLength;
+    public String getPasswordRequirement() {
+        return passwordRequirement;
     }
 
     /**
      * Checks if this algorithm has password length constraints.
      *
-     * @return true if min or max password length is set
+     * @return true if a password length rule is set
      */
     public boolean hasPasswordConstraints() {
-        return minPasswordLength > 0 || maxPasswordLength > 0;
+        return passwordLengthRule != null;
     }
 
     @Override

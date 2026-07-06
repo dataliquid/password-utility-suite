@@ -10,21 +10,21 @@ import com.dataliquid.passwordsuite.crypto.config.CipherConfig;
  * MuleSoft-compatible AES-CBC cipher that uses the password as IV.
  * <p>
  * This is the default MuleSoft behavior when NOT using the
- * {@code --use-random-iv} flag. The first 16 characters of the password are
+ * {@code --use-random-iv} flag. The first block-size bytes of the password are
  * used as the initialization vector; no IV is stored in the output.
  * </p>
  * <p>
- * Use {@link MuleSoftAesCbcCipher} for MuleSoft's random IV mode.
+ * Use {@link MuleSoftRandomIvCipher} for MuleSoft's random IV mode.
  * </p>
  */
-public class MuleSoftAesCbcPasswordIvCipher extends AbstractMuleSoftCipher {
+public class MuleSoftPasswordIvCipher extends AbstractMuleSoftCipher {
 
     /**
      * Creates a MuleSoft-compatible AES-CBC cipher using password as IV.
      *
      * @param config the cipher configuration
      */
-    public MuleSoftAesCbcPasswordIvCipher(CipherConfig config) {
+    public MuleSoftPasswordIvCipher(CipherConfig config) {
         super(config);
     }
 
@@ -39,9 +39,10 @@ public class MuleSoftAesCbcPasswordIvCipher extends AbstractMuleSoftCipher {
     }
 
     /**
-     * MuleSoft default mode: the first 16 characters of the password act as IV.
+     * MuleSoft default mode: the first block-size characters of the password act as
+     * IV.
      */
     private byte[] passwordIv() {
-        return config.getKeyConfig().getMasterPassword().substring(0, IV_LENGTH).getBytes(StandardCharsets.UTF_8);
+        return config.getKeyConfig().getMasterPassword().substring(0, ivLength).getBytes(StandardCharsets.UTF_8);
     }
 }

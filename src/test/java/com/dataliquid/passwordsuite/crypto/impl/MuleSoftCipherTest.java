@@ -17,13 +17,13 @@ import com.dataliquid.passwordsuite.crypto.config.KeyConfig;
  * --use-random-iv, format is: Base64(IV + ciphertext)
  * </p>
  */
-class MuleSoftAesCbcCipherTest {
+class MuleSoftCipherTest {
 
     // MuleSoft requires exactly 16-character password for AES-128
     private static final String MULESOFT_PASSWORD = "1234567890123456";
     private static final String TEST_PLAINTEXT = "secret123";
 
-    private MuleSoftAesCbcCipher cipher;
+    private MuleSoftRandomIvCipher cipher;
     private CipherConfig cipherConfig;
 
     @BeforeEach
@@ -31,7 +31,7 @@ class MuleSoftAesCbcCipherTest {
         KeyConfig keyConfig = new KeyConfig(MULESOFT_PASSWORD);
         // Use "![" and "]" as format prefix/suffix (MuleSoft style, but configurable)
         cipherConfig = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
-        cipher = new MuleSoftAesCbcCipher(cipherConfig);
+        cipher = new MuleSoftRandomIvCipher(cipherConfig);
     }
 
     @Test
@@ -51,7 +51,7 @@ class MuleSoftAesCbcCipherTest {
         String encrypted = cipher.encrypt(TEST_PLAINTEXT);
 
         // Create a new cipher instance with same config
-        MuleSoftAesCbcCipher newCipher = new MuleSoftAesCbcCipher(cipherConfig);
+        MuleSoftRandomIvCipher newCipher = new MuleSoftRandomIvCipher(cipherConfig);
 
         // Should be able to decrypt with new instance
         String decrypted = newCipher.decrypt(encrypted);
@@ -76,7 +76,7 @@ class MuleSoftAesCbcCipherTest {
         // Password too short (not 16 or 32)
         KeyConfig shortKeyConfig = new KeyConfig("short");
         CipherConfig shortConfig = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", shortKeyConfig);
-        MuleSoftAesCbcCipher shortCipher = new MuleSoftAesCbcCipher(shortConfig);
+        MuleSoftRandomIvCipher shortCipher = new MuleSoftRandomIvCipher(shortConfig);
 
         assertThatThrownBy(() -> shortCipher.encrypt("test"))
                 .isInstanceOf(CryptoException.class)
@@ -85,7 +85,7 @@ class MuleSoftAesCbcCipherTest {
         // Password wrong length (not 16 or 32)
         KeyConfig wrongKeyConfig = new KeyConfig("this-is-24-characters!!");
         CipherConfig wrongConfig = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", wrongKeyConfig);
-        MuleSoftAesCbcCipher wrongCipher = new MuleSoftAesCbcCipher(wrongConfig);
+        MuleSoftRandomIvCipher wrongCipher = new MuleSoftRandomIvCipher(wrongConfig);
 
         assertThatThrownBy(() -> wrongCipher.encrypt("test"))
                 .isInstanceOf(CryptoException.class)
@@ -98,7 +98,7 @@ class MuleSoftAesCbcCipherTest {
         String aes256Password = "12345678901234567890123456789012";
         KeyConfig keyConfig = new KeyConfig(aes256Password);
         CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 256, "![", "]", keyConfig);
-        MuleSoftAesCbcCipher aes256Cipher = new MuleSoftAesCbcCipher(config);
+        MuleSoftRandomIvCipher aes256Cipher = new MuleSoftRandomIvCipher(config);
 
         String encrypted = aes256Cipher.encrypt(TEST_PLAINTEXT);
         assertThat(encrypted).startsWith("![");
@@ -161,7 +161,7 @@ class MuleSoftAesCbcCipherTest {
         // Result: w9oKTqKTtvBuRUVbhQP/qw==
         KeyConfig keyConfig = new KeyConfig(MULESOFT_PASSWORD);
         CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "", "", keyConfig);
-        MuleSoftAesCbcPasswordIvCipher passwordIvCipher = new MuleSoftAesCbcPasswordIvCipher(config);
+        MuleSoftPasswordIvCipher passwordIvCipher = new MuleSoftPasswordIvCipher(config);
 
         String muleSoftPasswordIvValue = "w9oKTqKTtvBuRUVbhQP/qw==";
         String decrypted = passwordIvCipher.decrypt(muleSoftPasswordIvValue);
@@ -180,7 +180,7 @@ class MuleSoftAesCbcCipherTest {
         String aes256Password = "12345678901234567890123456789012";
         KeyConfig keyConfig = new KeyConfig(aes256Password);
         CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 256, "", "", keyConfig);
-        MuleSoftAesCbcPasswordIvCipher aes256Cipher = new MuleSoftAesCbcPasswordIvCipher(config);
+        MuleSoftPasswordIvCipher aes256Cipher = new MuleSoftPasswordIvCipher(config);
 
         String muleSoftAes256PasswordIvValue = "hvviuvvOu8EADgdrFqCeXA==";
         String decrypted = aes256Cipher.decrypt(muleSoftAes256PasswordIvValue);
@@ -190,10 +190,10 @@ class MuleSoftAesCbcCipherTest {
 
     @Test
     void shouldEncryptAndDecryptWithPasswordIvCipher() throws CryptoException {
-        // Test MuleSoftAesCbcPasswordIvCipher encrypt/decrypt roundtrip
+        // Test MuleSoftPasswordIvCipher encrypt/decrypt roundtrip
         KeyConfig keyConfig = new KeyConfig(MULESOFT_PASSWORD);
         CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
-        MuleSoftAesCbcPasswordIvCipher passwordIvCipher = new MuleSoftAesCbcPasswordIvCipher(config);
+        MuleSoftPasswordIvCipher passwordIvCipher = new MuleSoftPasswordIvCipher(config);
 
         String encrypted = passwordIvCipher.encrypt("testvalue");
         assertThat(encrypted).startsWith("![");
@@ -208,12 +208,77 @@ class MuleSoftAesCbcCipherTest {
         // Password-IV cipher produces deterministic output (same password = same IV)
         KeyConfig keyConfig = new KeyConfig(MULESOFT_PASSWORD);
         CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "", "", keyConfig);
-        MuleSoftAesCbcPasswordIvCipher passwordIvCipher = new MuleSoftAesCbcPasswordIvCipher(config);
+        MuleSoftPasswordIvCipher passwordIvCipher = new MuleSoftPasswordIvCipher(config);
 
         String encrypted1 = passwordIvCipher.encrypt("hello");
         String encrypted2 = passwordIvCipher.encrypt("hello");
 
         // Should be the same (deterministic IV from password)
         assertThat(encrypted1).isEqualTo(encrypted2);
+    }
+
+    // --- Blowfish and DESede (MuleSoft legacy algorithms, 8-byte block size) ---
+
+    private CipherConfig legacyConfig(String algorithm, int keySize, String password) {
+        return new CipherConfig(algorithm, "CBC", "PKCS5Padding", keySize, "![", "]", new KeyConfig(password));
+    }
+
+    @Test
+    void shouldDecryptBlowfishPasswordIvValueFromMuleSoftTool() throws CryptoException {
+        // secure-properties-tool.jar string encrypt Blowfish CBC 1234567890123456
+        // secret123
+        MuleSoftPasswordIvCipher cipher16 = new MuleSoftPasswordIvCipher(
+                legacyConfig("Blowfish", 128, "1234567890123456"));
+        assertThat(cipher16.decrypt("![jCN/KItxCMZkyVFhaBCbog==]")).isEqualTo("secret123");
+
+        // Blowfish accepts short keys too: 8-character password
+        MuleSoftPasswordIvCipher cipher8 = new MuleSoftPasswordIvCipher(legacyConfig("Blowfish", 128, "12345678"));
+        assertThat(cipher8.decrypt("![5M5+Q64ChgzAWeq2pf6Hag==]")).isEqualTo("secret123");
+    }
+
+    @Test
+    void shouldDecryptBlowfishRandomIvValueFromMuleSoftTool() throws CryptoException {
+        // secure-properties-tool.jar ... Blowfish CBC ... --use-random-iv (8-byte IV
+        // prepended)
+        MuleSoftRandomIvCipher cipher = new MuleSoftRandomIvCipher(legacyConfig("Blowfish", 128, "1234567890123456"));
+        assertThat(cipher.decrypt("![Ea1vLjm3PbZ2C9Qu/eaVQv/eg6F9g0IM]")).isEqualTo("secret123");
+    }
+
+    @Test
+    void shouldDecryptDesedePasswordIvValueFromMuleSoftTool() throws CryptoException {
+        // secure-properties-tool.jar string encrypt DESede CBC 123456789012345678901234
+        // secret123
+        MuleSoftPasswordIvCipher cipher = new MuleSoftPasswordIvCipher(
+                legacyConfig("DESede", 168, "123456789012345678901234"));
+        assertThat(cipher.decrypt("![zOXZ3oxeVqv6QEJ7tSgNig==]")).isEqualTo("secret123");
+    }
+
+    @Test
+    void shouldRoundTripBlowfishAndDesedeInBothModes() throws CryptoException {
+        String plaintext = "round-trip \u00e4\u00f6\u00fc value";
+
+        for (CipherConfig config : new CipherConfig[] { legacyConfig("Blowfish", 128, "1234567890123456"),
+                legacyConfig("DESede", 168, "123456789012345678901234") }) {
+            MuleSoftPasswordIvCipher passwordIv = new MuleSoftPasswordIvCipher(config);
+            MuleSoftRandomIvCipher randomIv = new MuleSoftRandomIvCipher(config);
+
+            assertThat(passwordIv.decrypt(passwordIv.encrypt(plaintext))).isEqualTo(plaintext);
+            assertThat(randomIv.decrypt(randomIv.encrypt(plaintext))).isEqualTo(plaintext);
+        }
+    }
+
+    @Test
+    void shouldRejectInvalidLegacyKeyLengths() {
+        // Blowfish requires at least 8 characters (password doubles as CBC IV)
+        MuleSoftPasswordIvCipher blowfish = new MuleSoftPasswordIvCipher(legacyConfig("Blowfish", 128, "short"));
+        assertThatThrownBy(() -> blowfish.encrypt("test"))
+                .isInstanceOf(CryptoException.class)
+                .hasMessageContaining("8 to 56");
+
+        // DESede requires exactly 24 characters
+        MuleSoftPasswordIvCipher desede = new MuleSoftPasswordIvCipher(legacyConfig("DESede", 168, "1234567890123456"));
+        assertThatThrownBy(() -> desede.encrypt("test"))
+                .isInstanceOf(CryptoException.class)
+                .hasMessageContaining("exactly 24");
     }
 }

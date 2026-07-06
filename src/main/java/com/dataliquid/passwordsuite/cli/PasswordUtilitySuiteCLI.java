@@ -224,9 +224,7 @@ public final class PasswordUtilitySuiteCLI {
                 AlgorithmConfig config = cipherRegistry.getAlgorithm(algo);
                 if (config.hasPasswordConstraints()) {
                     sb.append(" (requires ");
-                    sb.append(config.getMinPasswordLength());
-                    sb.append(" or ");
-                    sb.append(config.getMaxPasswordLength());
+                    sb.append(config.getPasswordRequirement());
                     sb.append(" char password)");
                 }
             }
