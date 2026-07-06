@@ -46,6 +46,21 @@ abstract class AbstractMuleSoftCipher implements Cipher {
 
     @Override
     public String decrypt(String encrypted) throws CryptoException {
+        return new String(decryptToBytes(encrypted), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Decrypts to raw plaintext bytes. Used by the auto-detect cipher, which needs
+     * byte-level access (converting garbage bytes to String would replace them with
+     * U+FFFD and break detection).
+     *
+     * @param  encrypted       the encrypted payload (e.g., "![...]")
+     *
+     * @return                 the plaintext bytes
+     *
+     * @throws CryptoException if decryption fails
+     */
+    byte[] decryptToBytes(String encrypted) throws CryptoException {
         if (encrypted == null) {
             throw new CryptoException("Encrypted text cannot be null");
         }
@@ -53,8 +68,7 @@ abstract class AbstractMuleSoftCipher implements Cipher {
         try {
             byte[] payload = Base64.getDecoder().decode(config.unwrapValue(encrypted));
             SecretKey key = getKeyFromPassword();
-            byte[] plaintextBytes = doDecrypt(payload, key);
-            return new String(plaintextBytes, StandardCharsets.UTF_8);
+            return doDecrypt(payload, key);
 
         } catch (IllegalArgumentException e) {
             throw new CryptoException("Invalid encrypted format: " + e.getMessage(), e);
