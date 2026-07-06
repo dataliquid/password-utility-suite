@@ -2,9 +2,8 @@ package com.dataliquid.passwordsuite.service;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Optional;
 import java.util.regex.Pattern;
-
-import javax.swing.JTextArea;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,25 +143,28 @@ public class EditorService {
     }
 
     /**
-     * Replaces a value in the editor text at the exact line where the ConfigEntry
-     * is located. This preserves comments, whitespace, and all other formatting.
+     * Replaces a value in the given editor content at the exact line where the
+     * ConfigEntry is located. This preserves comments, whitespace, and all other
+     * formatting.
      *
-     * @param entry    the ConfigEntry containing lineNumber and key info
-     * @param oldValue the old value to replace
-     * @param newValue the new value to insert
-     * @param editor   the JTextArea editor
+     * @param  entry    the ConfigEntry containing lineNumber and key info
+     * @param  oldValue the old value to replace
+     * @param  newValue the new value to insert
+     * @param  content  the current editor content
+     *
+     * @return          the updated content, or empty if the value could not be
+     *                  replaced
      */
-    public void replaceValueInEditor(ConfigEntry entry, String oldValue, String newValue, JTextArea editor) {
+    public Optional<String> replaceValueInContent(ConfigEntry entry, String oldValue, String newValue, String content) {
         if (entry.getLineNumber() < 0) {
             if (logger.isWarnEnabled()) {
                 logger
                         .warn("Cannot replace value in editor: entry has no line number tracked (key={})",
                                 entry.getKey());
             }
-            return;
+            return Optional.empty();
         }
 
-        String content = editor.getText();
         String[] lines = content.split("\n", -1); // -1 to preserve empty lines
 
         int lineNum = entry.getLineNumber();
@@ -172,7 +174,7 @@ public class EditorService {
                         .warn("Cannot replace value in editor: line number {} out of bounds (key={})", lineNum,
                                 entry.getKey());
             }
-            return;
+            return Optional.empty();
         }
 
         String originalLine = lines[lineNum];
@@ -182,24 +184,15 @@ public class EditorService {
             if (logger.isWarnEnabled()) {
                 logger.warn("Value not found in line {} for replacement (key={})", lineNum, entry.getKey());
             }
-            return;
+            return Optional.empty();
         }
 
         lines[lineNum] = newLine;
-        String newContent = String.join("\n", lines);
-
-        // Update editor while preserving cursor position
-        int caretPos = editor.getCaretPosition();
-        editor.setText(newContent);
-        try {
-            editor.setCaretPosition(Math.min(caretPos, newContent.length()));
-        } catch (IllegalArgumentException e) {
-            logger.debug("Caret position {} out of bounds after text replacement", caretPos);
-        }
 
         if (logger.isInfoEnabled()) {
             logger.info("Replaced value in editor at line {} (key={})", lineNum, entry.getKey());
         }
+        return Optional.of(String.join("\n", lines));
     }
 
     /**

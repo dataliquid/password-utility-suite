@@ -1,12 +1,14 @@
 package com.dataliquid.passwordsuite.ui;
 
+import com.dataliquid.passwordsuite.environment.EnvironmentManager;
+
 /**
  * Centralized UI constants to avoid magic strings throughout the codebase.
  */
 public final class UIConstants {
 
     /** Default environment label when no environment is selected. */
-    public static final String NO_ENVIRONMENT = "No Environment";
+    public static final String NO_ENVIRONMENT = EnvironmentManager.NO_ENVIRONMENT;
 
     /** Status bar label when no file is open. */
     public static final String NO_FILE = "No file";

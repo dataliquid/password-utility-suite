@@ -2,9 +2,7 @@ package com.dataliquid.passwordsuite.service;
 
 import com.dataliquid.passwordsuite.crypto.Cipher;
 import com.dataliquid.passwordsuite.crypto.CryptoException;
-import com.dataliquid.passwordsuite.crypto.config.KeyConfig;
 import com.dataliquid.passwordsuite.crypto.factory.CipherFactory;
-import com.dataliquid.passwordsuite.crypto.factory.CipherRegistry;
 import com.dataliquid.passwordsuite.domain.ConfigEntry;
 import com.dataliquid.passwordsuite.domain.operation.EditValueOperation;
 
@@ -26,16 +24,6 @@ public class CryptoService {
      */
     public CryptoService() {
         // Fields default to null - no explicit initialization needed
-    }
-
-    /**
-     * Creates a CryptoService with a custom cipher implementation.
-     *
-     * @param cipher the cipher to use for encryption/decryption
-     */
-    public CryptoService(Cipher cipher) {
-        this.cipher = cipher;
-        this.currentAlgorithm = "Custom";
     }
 
     /**
@@ -133,20 +121,6 @@ public class CryptoService {
         } catch (CryptoException e) {
             throw new RuntimeException("Decryption failed: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Sets the master password and creates a new cipher factory. This allows
-     * switching to secure encryption algorithms.
-     *
-     * @param masterPassword the master password for key derivation
-     */
-    public void setMasterPassword(String masterPassword) throws CryptoException {
-        KeyConfig keyConfig = new KeyConfig(masterPassword);
-        CipherRegistry registry = new CipherRegistry();
-        this.cipherFactory = new CipherFactory(registry, keyConfig);
-        // Recreate current cipher with new password
-        this.cipher = cipherFactory.createCipher(currentAlgorithm);
     }
 
     /**

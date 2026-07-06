@@ -4,6 +4,7 @@ import com.dataliquid.passwordsuite.crypto.Cipher;
 import com.dataliquid.passwordsuite.crypto.CryptoException;
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
 import com.dataliquid.passwordsuite.crypto.config.CipherConfig;
+import com.dataliquid.passwordsuite.crypto.config.FormatConfig;
 import com.dataliquid.passwordsuite.crypto.config.KeyConfig;
 
 /**
@@ -13,8 +14,8 @@ import com.dataliquid.passwordsuite.crypto.config.KeyConfig;
  */
 public class CipherFactory {
 
-    private static final String DEFAULT_FORMAT_PREFIX = "ENC[";
-    private static final String DEFAULT_FORMAT_SUFFIX = "]";
+    private static final String DEFAULT_FORMAT_PREFIX = FormatConfig.DEFAULT_PREFIX;
+    private static final String DEFAULT_FORMAT_SUFFIX = FormatConfig.DEFAULT_SUFFIX;
 
     private final CipherRegistry registry;
     private final KeyConfig keyConfig;
@@ -65,8 +66,7 @@ public class CipherFactory {
             String suffix = formatSuffix != null ? formatSuffix : DEFAULT_FORMAT_SUFFIX;
 
             // Create cipher configuration with KeyConfig for per-operation key derivation
-            CipherConfig cipherConfig = new CipherConfig(algConfig.getAlgorithm(), algConfig.getMode(),
-                    algConfig.getPadding(), algConfig.getKeySize(), prefix, suffix, keyConfig);
+            CipherConfig cipherConfig = new CipherConfig(algConfig, prefix, suffix, keyConfig);
 
             // Create cipher instance (key derivation happens per encrypt/decrypt)
             return algConfig.getFactory().create(cipherConfig);
@@ -74,14 +74,5 @@ public class CipherFactory {
         } catch (Exception e) {
             throw new CryptoException("Failed to create cipher: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Returns the cipher registry.
-     *
-     * @return the registry
-     */
-    public CipherRegistry getRegistry() {
-        return registry;
     }
 }

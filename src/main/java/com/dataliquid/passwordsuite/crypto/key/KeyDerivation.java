@@ -46,22 +46,4 @@ public class KeyDerivation {
         }
     }
 
-    /**
-     * Derives a secret key from a password using PBKDF2. Automatically determines
-     * key algorithm from key size (AES for standard sizes).
-     *
-     * @param  password        the password to derive the key from
-     * @param  salt            the salt for key derivation
-     * @param  keySize         the desired key size in bits (e.g., 256)
-     * @param  iterations      the number of PBKDF2 iterations (recommended: 65536+)
-     * @param  algorithm       the KDF algorithm (e.g., "PBKDF2WithHmacSHA256")
-     *
-     * @return                 the derived secret key
-     *
-     * @throws CryptoException if key derivation fails
-     */
-    public static SecretKey deriveKey(String password, byte[] salt, int keySize, int iterations, String algorithm)
-            throws CryptoException {
-        return deriveKey(password, salt, keySize, iterations, algorithm, "AES");
-    }
 }

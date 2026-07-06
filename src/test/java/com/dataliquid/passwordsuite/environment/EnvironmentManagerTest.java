@@ -1,4 +1,4 @@
-package com.dataliquid.passwordsuite.ui.handler;
+package com.dataliquid.passwordsuite.environment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -9,21 +9,21 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class PasswordManagerTest {
+class EnvironmentManagerTest {
 
-    private PasswordManager passwordManager;
+    private EnvironmentManager environmentManager;
 
     @BeforeEach
     void setUp() {
-        passwordManager = new PasswordManager();
+        environmentManager = new EnvironmentManager();
     }
 
     @Test
     void shouldStartWithNoEnvironments() {
-        assertThat(passwordManager.hasEnvironments()).isFalse();
-        assertThat(passwordManager.getEnvironmentCount()).isZero();
-        assertThat(passwordManager.getActiveEnvironment()).isNull();
-        assertThat(passwordManager.getActivePassword()).isEmpty();
+        assertThat(environmentManager.hasEnvironments()).isFalse();
+        assertThat(environmentManager.getEnvironmentCount()).isZero();
+        assertThat(environmentManager.getActiveEnvironment()).isNull();
+        assertThat(environmentManager.getActivePassword()).isEmpty();
     }
 
     @Test
@@ -32,12 +32,12 @@ class PasswordManagerTest {
         environments.put("dev", new EnvironmentConfig("dev-password".toCharArray()));
         environments.put("prod", new EnvironmentConfig("prod-password".toCharArray()));
 
-        passwordManager.updateFromDialog(environments, "prod");
+        environmentManager.updateFromDialog(environments, "prod");
 
-        assertThat(passwordManager.hasEnvironments()).isTrue();
-        assertThat(passwordManager.getEnvironmentCount()).isEqualTo(2);
-        assertThat(passwordManager.getActiveEnvironment()).isEqualTo("prod");
-        assertThat(passwordManager.getEnvironmentNames()).containsExactlyInAnyOrder("dev", "prod");
+        assertThat(environmentManager.hasEnvironments()).isTrue();
+        assertThat(environmentManager.getEnvironmentCount()).isEqualTo(2);
+        assertThat(environmentManager.getActiveEnvironment()).isEqualTo("prod");
+        assertThat(environmentManager.getEnvironmentNames()).containsExactlyInAnyOrder("dev", "prod");
     }
 
     @Test
@@ -46,9 +46,9 @@ class PasswordManagerTest {
         environments.put("dev", new EnvironmentConfig("dev-password".toCharArray()));
         environments.put("prod", new EnvironmentConfig("prod-password".toCharArray()));
 
-        passwordManager.updateFromDialog(environments, "prod");
+        environmentManager.updateFromDialog(environments, "prod");
 
-        assertThat(new String(passwordManager.getActivePassword())).isEqualTo("prod-password");
+        assertThat(new String(environmentManager.getActivePassword())).isEqualTo("prod-password");
     }
 
     @Test
@@ -56,10 +56,10 @@ class PasswordManagerTest {
         Map<String, EnvironmentConfig> environments = new HashMap<>();
         environments.put("dev", new EnvironmentConfig("dev-password".toCharArray()));
 
-        passwordManager.updateFromDialog(environments, null);
+        environmentManager.updateFromDialog(environments, null);
 
-        assertThat(passwordManager.getActivePassword()).isNotNull();
-        assertThat(new String(passwordManager.getActivePassword())).isEqualTo("dev-password");
+        assertThat(environmentManager.getActivePassword()).isNotNull();
+        assertThat(new String(environmentManager.getActivePassword())).isEqualTo("dev-password");
     }
 
     @Test
@@ -68,14 +68,14 @@ class PasswordManagerTest {
         char[] password = "secret-password".toCharArray();
         environments.put("prod", new EnvironmentConfig(password));
 
-        passwordManager.updateFromDialog(environments, "prod");
-        assertThat(passwordManager.hasEnvironments()).isTrue();
+        environmentManager.updateFromDialog(environments, "prod");
+        assertThat(environmentManager.hasEnvironments()).isTrue();
 
-        passwordManager.cleanup();
+        environmentManager.cleanup();
 
-        assertThat(passwordManager.hasEnvironments()).isFalse();
-        assertThat(passwordManager.getEnvironmentCount()).isZero();
-        assertThat(passwordManager.getActiveEnvironment()).isNull();
+        assertThat(environmentManager.hasEnvironments()).isFalse();
+        assertThat(environmentManager.getEnvironmentCount()).isZero();
+        assertThat(environmentManager.getActiveEnvironment()).isNull();
     }
 
     @Test
@@ -84,11 +84,11 @@ class PasswordManagerTest {
         environments.put("dev", new EnvironmentConfig("dev-password".toCharArray()));
         environments.put("prod", new EnvironmentConfig("prod-password".toCharArray()));
 
-        passwordManager.updateFromDialog(environments, "dev");
-        assertThat(passwordManager.getActiveEnvironment()).isEqualTo("dev");
+        environmentManager.updateFromDialog(environments, "dev");
+        assertThat(environmentManager.getActiveEnvironment()).isEqualTo("dev");
 
-        passwordManager.setActiveEnvironment("prod");
-        assertThat(passwordManager.getActiveEnvironment()).isEqualTo("prod");
+        environmentManager.setActiveEnvironment("prod");
+        assertThat(environmentManager.getActiveEnvironment()).isEqualTo("prod");
     }
 
     @Test
@@ -96,11 +96,11 @@ class PasswordManagerTest {
         Map<String, EnvironmentConfig> environments = new HashMap<>();
         environments.put("dev", new EnvironmentConfig("dev-password".toCharArray()));
 
-        passwordManager.updateFromDialog(environments, "dev");
-        assertThat(passwordManager.getActiveEnvironment()).isEqualTo("dev");
+        environmentManager.updateFromDialog(environments, "dev");
+        assertThat(environmentManager.getActiveEnvironment()).isEqualTo("dev");
 
-        passwordManager.setActiveEnvironment("No Environment");
-        assertThat(passwordManager.getActiveEnvironment()).isNull();
+        environmentManager.setActiveEnvironment("No Environment");
+        assertThat(environmentManager.getActiveEnvironment()).isNull();
     }
 
     @Test
@@ -109,13 +109,13 @@ class PasswordManagerTest {
         char[] originalPassword = "original".toCharArray();
         environments.put("test", new EnvironmentConfig(originalPassword));
 
-        passwordManager.updateFromDialog(environments, "test");
+        environmentManager.updateFromDialog(environments, "test");
 
         // Modify original password
         originalPassword[0] = 'X';
 
         // Password in manager should be unchanged
-        assertThat(new String(passwordManager.getActivePassword())).isEqualTo("original");
+        assertThat(new String(environmentManager.getActivePassword())).isEqualTo("original");
     }
 
     @Test
@@ -125,9 +125,9 @@ class PasswordManagerTest {
         environments.put("beta", new EnvironmentConfig("b".toCharArray()));
         environments.put("gamma", new EnvironmentConfig("c".toCharArray()));
 
-        passwordManager.updateFromDialog(environments, "alpha");
+        environmentManager.updateFromDialog(environments, "alpha");
 
-        List<String> names = passwordManager.getEnvironmentNames();
+        List<String> names = environmentManager.getEnvironmentNames();
         assertThat(names).hasSize(3);
         assertThat(names).containsExactlyInAnyOrder("alpha", "beta", "gamma");
     }
@@ -138,9 +138,9 @@ class PasswordManagerTest {
         environments.put("dev", new EnvironmentConfig("dev-password".toCharArray()));
         environments.put("prod", new EnvironmentConfig("prod-password".toCharArray()));
 
-        passwordManager.updateFromDialog(environments, "dev");
+        environmentManager.updateFromDialog(environments, "dev");
 
-        Map<String, EnvironmentConfig> copy = passwordManager.getEnvironmentsCopy();
+        Map<String, EnvironmentConfig> copy = environmentManager.getEnvironmentsCopy();
         assertThat(copy).hasSize(2);
         assertThat(copy).containsKeys("dev", "prod");
         assertThat(new String(copy.get("dev").getPassword())).isEqualTo("dev-password");
@@ -152,36 +152,36 @@ class PasswordManagerTest {
         Map<String, EnvironmentConfig> environments = new HashMap<>();
         environments.put("test", new EnvironmentConfig("test-password".toCharArray()));
 
-        passwordManager.updateFromDialog(environments, "test");
+        environmentManager.updateFromDialog(environments, "test");
 
-        Map<String, EnvironmentConfig> copy = passwordManager.getEnvironmentsCopy();
+        Map<String, EnvironmentConfig> copy = environmentManager.getEnvironmentsCopy();
 
         // Modify the copy
         copy.get("test").getPassword()[0] = 'X';
 
         // Original should be unchanged
-        assertThat(new String(passwordManager.getActivePassword())).isEqualTo("test-password");
+        assertThat(new String(environmentManager.getActivePassword())).isEqualTo("test-password");
     }
 
     @Test
     void shouldStoreAndRetrieveFormatSettings() {
         Map<String, EnvironmentConfig> environments = new HashMap<>();
-        environments.put("prod", new EnvironmentConfig("password".toCharArray(), "SEC[", "}"));
-        environments.put("dev", new EnvironmentConfig("password".toCharArray(), "ENC[", "]"));
+        environments.put("prod", new EnvironmentConfig("password".toCharArray(), "SEC[", "}", null));
+        environments.put("dev", new EnvironmentConfig("password".toCharArray(), "ENC[", "]", null));
 
-        passwordManager.updateFromDialog(environments, "prod");
+        environmentManager.updateFromDialog(environments, "prod");
 
-        assertThat(passwordManager.getActiveFormatPrefix()).isEqualTo("SEC[");
-        assertThat(passwordManager.getActiveFormatSuffix()).isEqualTo("}");
+        assertThat(environmentManager.getActiveFormatPrefix()).isEqualTo("SEC[");
+        assertThat(environmentManager.getActiveFormatSuffix()).isEqualTo("}");
 
-        passwordManager.setActiveEnvironment("dev");
-        assertThat(passwordManager.getActiveFormatPrefix()).isEqualTo("ENC[");
-        assertThat(passwordManager.getActiveFormatSuffix()).isEqualTo("]");
+        environmentManager.setActiveEnvironment("dev");
+        assertThat(environmentManager.getActiveFormatPrefix()).isEqualTo("ENC[");
+        assertThat(environmentManager.getActiveFormatSuffix()).isEqualTo("]");
     }
 
     @Test
     void shouldReturnDefaultFormatWhenNoEnvironmentConfigured() {
-        assertThat(passwordManager.getActiveFormatPrefix()).isEqualTo(EnvironmentConfig.DEFAULT_FORMAT_PREFIX);
-        assertThat(passwordManager.getActiveFormatSuffix()).isEqualTo(EnvironmentConfig.DEFAULT_FORMAT_SUFFIX);
+        assertThat(environmentManager.getActiveFormatPrefix()).isEqualTo(EnvironmentConfig.DEFAULT_FORMAT_PREFIX);
+        assertThat(environmentManager.getActiveFormatSuffix()).isEqualTo(EnvironmentConfig.DEFAULT_FORMAT_SUFFIX);
     }
 }

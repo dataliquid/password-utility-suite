@@ -23,7 +23,7 @@ import javax.swing.JTextField;
 
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
 import com.dataliquid.passwordsuite.crypto.factory.CipherRegistry;
-import com.dataliquid.passwordsuite.ui.handler.EnvironmentConfig;
+import com.dataliquid.passwordsuite.environment.EnvironmentConfig;
 
 /**
  * Dialog for configuring multiple environments with master passwords and format
@@ -50,37 +50,6 @@ public final class EnvironmentsDialog extends JDialog {
     private final List<String> availableAlgorithms;
     private final transient CipherRegistry cipherRegistry;
     private boolean confirmed;
-
-    /**
-     * Creates a new EnvironmentsDialog with environment names only. Use this
-     * constructor when passwords are managed by PasswordManager.
-     *
-     * @param parent                   the parent frame
-     * @param existingEnvironmentNames list of existing environment names
-     * @param activeEnvironment        the currently active environment name
-     * @param cipherRegistry           the cipher registry for algorithm metadata
-     */
-    public EnvironmentsDialog(Frame parent, List<String> existingEnvironmentNames, String activeEnvironment,
-            CipherRegistry cipherRegistry) {
-        this(parent, (Map<String, EnvironmentConfig>) null, activeEnvironment, cipherRegistry);
-
-        // Initialize combo box with existing environment names
-        if (existingEnvironmentNames != null) {
-            for (String envName : existingEnvironmentNames) {
-                environmentComboBox.addItem(envName);
-            }
-        }
-
-        // Select active environment if exists
-        if (activeEnvironment != null && existingEnvironmentNames != null
-                && existingEnvironmentNames.contains(activeEnvironment)) {
-            environmentComboBox.setSelectedItem(activeEnvironment);
-        } else if (environmentComboBox.getItemCount() > 0) {
-            environmentComboBox.setSelectedIndex(0);
-        }
-
-        updateButtonStates();
-    }
 
     /**
      * Creates a new EnvironmentsDialog with existing environments map.
