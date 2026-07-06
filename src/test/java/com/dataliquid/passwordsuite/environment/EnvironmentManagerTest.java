@@ -184,4 +184,67 @@ class EnvironmentManagerTest {
         assertThat(environmentManager.getActiveFormatPrefix()).isEqualTo(EnvironmentConfig.DEFAULT_FORMAT_PREFIX);
         assertThat(environmentManager.getActiveFormatSuffix()).isEqualTo(EnvironmentConfig.DEFAULT_FORMAT_SUFFIX);
     }
+
+    @Test
+    void shouldDetectEnvironmentByFilenamePattern() {
+        Map<String, EnvironmentConfig> environments = new HashMap<>();
+        environments
+                .put("prod", new EnvironmentConfig("password12345678".toCharArray(), "ENC[", "]", null,
+                        ".*-prod\\.properties"));
+        environments
+                .put("dev", new EnvironmentConfig("password12345678".toCharArray(), "ENC[", "]", null,
+                        ".*-dev\\.properties"));
+        environmentManager.updateFromDialog(environments, "dev");
+
+        assertThat(environmentManager.detectEnvironment("/home/user/app-prod.properties")).contains("prod");
+        assertThat(environmentManager.detectEnvironment("/home/user/app-dev.properties")).contains("dev");
+    }
+
+    @Test
+    void shouldReturnEmptyWhenNoPatternMatches() {
+        Map<String, EnvironmentConfig> environments = new HashMap<>();
+        environments
+                .put("prod", new EnvironmentConfig("password12345678".toCharArray(), "ENC[", "]", null,
+                        ".*-prod\\.properties"));
+        environments.put("nopattern", new EnvironmentConfig("password12345678".toCharArray()));
+        environmentManager.updateFromDialog(environments, "prod");
+
+        assertThat(environmentManager.detectEnvironment("/home/user/app-staging.properties")).isEmpty();
+    }
+
+    @Test
+    void shouldSkipInvalidPatternAndKeepDetecting() {
+        Map<String, EnvironmentConfig> environments = new HashMap<>();
+        // "broken" sorts before "valid", so the invalid pattern is hit first
+        environments
+                .put("broken", new EnvironmentConfig("password12345678".toCharArray(), "ENC[", "]", null, "[invalid"));
+        environments
+                .put("valid",
+                        new EnvironmentConfig("password12345678".toCharArray(), "ENC[", "]", null, ".*\\.properties"));
+        environmentManager.updateFromDialog(environments, "valid");
+
+        assertThat(environmentManager.detectEnvironment("/home/user/app.properties")).contains("valid");
+    }
+
+    @Test
+    void shouldDetectFirstEnvironmentAlphabeticallyWhenMultiplePatternsMatch() {
+        Map<String, EnvironmentConfig> environments = new HashMap<>();
+        environments.put("beta", new EnvironmentConfig("password12345678".toCharArray(), "ENC[", "]", null, ".*"));
+        environments.put("alpha", new EnvironmentConfig("password12345678".toCharArray(), "ENC[", "]", null, ".*"));
+        environmentManager.updateFromDialog(environments, "alpha");
+
+        assertThat(environmentManager.detectEnvironment("/any/file.properties")).contains("alpha");
+    }
+
+    @Test
+    void shouldPreservePatternInCopies() {
+        Map<String, EnvironmentConfig> environments = new HashMap<>();
+        environments
+                .put("prod", new EnvironmentConfig("password12345678".toCharArray(), "ENC[", "]", null,
+                        ".*-prod\\.properties"));
+        environmentManager.updateFromDialog(environments, "prod");
+
+        Map<String, EnvironmentConfig> copy = environmentManager.getEnvironmentsCopy();
+        assertThat(copy.get("prod").getPattern()).isEqualTo(".*-prod\\.properties");
+    }
 }

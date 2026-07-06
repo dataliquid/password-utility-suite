@@ -1,9 +1,13 @@
 package com.dataliquid.passwordsuite.environment;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +65,7 @@ public class EnvironmentManager {
         for (Map.Entry<String, EnvironmentConfig> entry : newEnvironments.entrySet()) {
             EnvironmentConfig config = entry.getValue();
             EnvironmentConfig configCopy = new EnvironmentConfig(config.getPassword(), config.getFormatPrefix(),
-                    config.getFormatSuffix(), config.getDefaultAlgorithm());
+                    config.getFormatSuffix(), config.getDefaultAlgorithm(), config.getPattern());
             environments.put(entry.getKey(), configCopy);
         }
 
@@ -69,6 +73,45 @@ public class EnvironmentManager {
         if (logger.isInfoEnabled()) {
             logger.info("Updated {} environments, active: {}", environments.size(), activeEnvironment);
         }
+    }
+
+    /**
+     * Detects the environment for a file by matching its absolute path against the
+     * configured filename patterns. Environments are checked in alphabetical order
+     * so the result is deterministic when multiple patterns match; invalid patterns
+     * are skipped with a warning.
+     *
+     * @param  absolutePath the absolute file path to match
+     *
+     * @return              the name of the first matching environment, or empty if
+     *                      none matches
+     */
+    public Optional<String> detectEnvironment(String absolutePath) {
+        List<String> names = getEnvironmentNames();
+        Collections.sort(names);
+
+        for (String name : names) {
+            EnvironmentConfig config = environments.get(name);
+            String pattern = config != null ? config.getPattern() : null;
+            if (pattern == null || pattern.isEmpty()) {
+                continue;
+            }
+
+            try {
+                if (Pattern.matches(pattern, absolutePath)) {
+                    if (logger.isInfoEnabled()) {
+                        logger.info("Auto-detected environment '{}' for file: {}", name, absolutePath);
+                    }
+                    return Optional.of(name);
+                }
+            } catch (PatternSyntaxException e) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Invalid regex pattern '{}' in environment '{}': {}", pattern, name, e.getMessage());
+                }
+            }
+        }
+
+        return Optional.empty();
     }
 
     /**
@@ -193,7 +236,7 @@ public class EnvironmentManager {
             EnvironmentConfig config = entry.getValue();
             copy
                     .put(entry.getKey(), new EnvironmentConfig(config.getPassword(), config.getFormatPrefix(),
-                            config.getFormatSuffix(), config.getDefaultAlgorithm()));
+                            config.getFormatSuffix(), config.getDefaultAlgorithm(), config.getPattern()));
         }
         return copy;
     }

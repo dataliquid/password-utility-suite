@@ -110,6 +110,13 @@ public final class MainFrame extends JFrame {
                 environmentManager, cipherRegistry, this, this::autoParseTab);
         environmentsHandler.setStatusBarUpdateCallback(this::updateStatusBar);
 
+        // Auto-detected environments run the full switch (dropdown, crypto
+        // service, re-parse) via EnvironmentsHandler
+        fileHandler.setEnvironmentDetectedCallback(environment -> {
+            actionPanel.setSelectedEnvironment(environment);
+            environmentsHandler.handleEnvironmentChange();
+        });
+
         // Layout
         setupLayout();
 

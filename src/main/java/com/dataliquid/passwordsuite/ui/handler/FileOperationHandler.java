@@ -3,7 +3,9 @@ package com.dataliquid.passwordsuite.ui.handler;
 import java.awt.Component;
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -44,6 +46,7 @@ public class FileOperationHandler {
 
     private File lastDirectory;
     private Runnable statusBarUpdateCallback;
+    private Consumer<String> environmentDetectedCallback;
 
     /**
      * Creates a new FileOperationHandler.
@@ -77,6 +80,17 @@ public class FileOperationHandler {
      */
     public void setStatusBarUpdateCallback(Runnable callback) {
         this.statusBarUpdateCallback = callback;
+    }
+
+    /**
+     * Sets the callback invoked when an environment was auto-detected for an opened
+     * file. The callback is expected to switch the environment and re-parse the
+     * tab.
+     *
+     * @param callback receives the detected environment name
+     */
+    public void setEnvironmentDetectedCallback(Consumer<String> callback) {
+        this.environmentDetectedCallback = callback;
     }
 
     /**
@@ -176,8 +190,13 @@ public class FileOperationHandler {
         newTab.setText(content);
         tabbedEditorPanel.updateActiveTabTitle();
 
-        // Auto-parse the file content
-        if (autoParseCallback != null) {
+        // Auto-detect environment from the filename pattern; the callback switches
+        // the environment and re-parses the tab, so plain auto-parse is only
+        // needed when nothing was detected
+        Optional<String> detectedEnvironment = environmentManager.detectEnvironment(file.getAbsolutePath());
+        if (detectedEnvironment.isPresent() && environmentDetectedCallback != null) {
+            environmentDetectedCallback.accept(detectedEnvironment.get());
+        } else if (autoParseCallback != null) {
             autoParseCallback.accept(newTab, content);
         }
 
