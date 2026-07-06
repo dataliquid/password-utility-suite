@@ -27,16 +27,6 @@ public class CryptoService {
     }
 
     /**
-     * Creates a CryptoService with a custom cipher implementation.
-     *
-     * @param cipher the cipher to use for encryption/decryption
-     */
-    public CryptoService(Cipher cipher) {
-        this.cipher = cipher;
-        this.currentAlgorithm = "Custom";
-    }
-
-    /**
      * Creates a CryptoService with a cipher factory for algorithm selection.
      *
      * @param cipherFactory the cipher factory

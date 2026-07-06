@@ -7,10 +7,9 @@ import java.util.Locale;
 
 import com.dataliquid.passwordsuite.crypto.CryptoException;
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
-import com.dataliquid.passwordsuite.crypto.config.KeyConfig;
-import com.dataliquid.passwordsuite.crypto.factory.CipherFactory;
 import com.dataliquid.passwordsuite.crypto.factory.CipherRegistry;
 import com.dataliquid.passwordsuite.service.CryptoService;
+import com.dataliquid.passwordsuite.service.CryptoServiceFactory;
 
 /**
  * Command-line interface for encrypting and decrypting single values.
@@ -37,9 +36,22 @@ public final class PasswordUtilitySuiteCLI {
     private static final int EXIT_INVALID_ARGS = 2;
 
     private final CipherRegistry cipherRegistry;
+    private final CryptoServiceFactory cryptoServiceFactory;
 
     public PasswordUtilitySuiteCLI() {
         this.cipherRegistry = new CipherRegistry();
+        this.cryptoServiceFactory = new CryptoServiceFactory(cipherRegistry);
+    }
+
+    /**
+     * Options shared by the encrypt and decrypt commands.
+     */
+    private static final class CliOptions {
+        private String password;
+        private String value;
+        private String algorithm = DEFAULT_ALGORITHM;
+        private String formatPrefix;
+        private boolean helpRequested;
     }
 
     public static void main(String[] args) {
@@ -84,123 +96,112 @@ public final class PasswordUtilitySuiteCLI {
     }
 
     private int handleEncrypt(String[] args) {
-        String password = null;
-        String value = null;
-        String algorithm = DEFAULT_ALGORITHM;
-        String formatPrefix = null;
-
-        // Parse arguments
-        for (int i = 0; i < args.length; i++) {
-            String arg = args[i];
-            if (("--password".equals(arg) || "-p".equals(arg)) && i + 1 < args.length) {
-                password = args[++i];
-            } else if (("--value".equals(arg) || "-v".equals(arg)) && i + 1 < args.length) {
-                value = args[++i];
-            } else if (("--algorithm".equals(arg) || "-a".equals(arg)) && i + 1 < args.length) {
-                algorithm = args[++i];
-            } else if (("--format".equals(arg) || "-f".equals(arg)) && i + 1 < args.length) {
-                formatPrefix = args[++i];
-            } else if ("--help".equals(arg) || "-h".equals(arg)) {
-                printEncryptUsage();
-                return EXIT_SUCCESS;
-            }
-        }
-
-        // Validate required arguments
-        if (value == null) {
-            System.err.println("Error: --value is required");
+        CliOptions options = parseOptions(args);
+        if (options.helpRequested) {
             printEncryptUsage();
-            return EXIT_INVALID_ARGS;
+            return EXIT_SUCCESS;
         }
 
-        // Prompt for password if not provided
-        if (password == null) {
-            password = promptPassword();
-            if (password == null) {
-                System.err.println("Error: Password is required");
-                return EXIT_INVALID_ARGS;
-            }
+        Integer argError = resolveRequiredOptions(options, this::printEncryptUsage);
+        if (argError != null) {
+            return argError;
         }
 
         // Determine format prefix/suffix from algorithm if not specified
-        String effectivePrefix = formatPrefix;
+        String effectivePrefix = options.formatPrefix;
         String effectiveSuffix = DEFAULT_FORMAT_SUFFIX;
-        if (effectivePrefix == null && cipherRegistry.hasAlgorithm(algorithm)) {
-            AlgorithmConfig config = cipherRegistry.getAlgorithm(algorithm);
+        if (effectivePrefix == null && cipherRegistry.hasAlgorithm(options.algorithm)) {
+            AlgorithmConfig config = cipherRegistry.getAlgorithm(options.algorithm);
             effectivePrefix = config.getDefaultFormatPrefix();
             effectiveSuffix = config.getDefaultFormatSuffix();
         } else if (effectivePrefix == null) {
             effectivePrefix = DEFAULT_FORMAT_PREFIX;
         }
 
-        // Perform encryption
-        try {
-            CryptoService cryptoService = createCryptoService(password, algorithm, effectivePrefix, effectiveSuffix);
-            String encrypted = cryptoService.encrypt(value);
-            System.out.println(encrypted);
-            return EXIT_SUCCESS;
-        } catch (CryptoException e) {
-            System.err.println("Encryption failed: " + e.getMessage());
-            return EXIT_ERROR;
-        } catch (RuntimeException e) {
-            System.err.println("Error: " + e.getMessage());
-            return EXIT_ERROR;
-        }
+        return runCryptoOperation(options, effectivePrefix, effectiveSuffix, true);
     }
 
     private int handleDecrypt(String[] args) {
-        String password = null;
-        String value = null;
-        String algorithm = DEFAULT_ALGORITHM;
-
-        // Parse arguments
-        for (int i = 0; i < args.length; i++) {
-            String arg = args[i];
-            if (("--password".equals(arg) || "-p".equals(arg)) && i + 1 < args.length) {
-                password = args[++i];
-            } else if (("--value".equals(arg) || "-v".equals(arg)) && i + 1 < args.length) {
-                value = args[++i];
-            } else if (("--algorithm".equals(arg) || "-a".equals(arg)) && i + 1 < args.length) {
-                algorithm = args[++i];
-            } else if ("--help".equals(arg) || "-h".equals(arg)) {
-                printDecryptUsage();
-                return EXIT_SUCCESS;
-            }
-        }
-
-        // Validate required arguments
-        if (value == null) {
-            System.err.println("Error: --value is required");
+        CliOptions options = parseOptions(args);
+        if (options.helpRequested) {
             printDecryptUsage();
-            return EXIT_INVALID_ARGS;
+            return EXIT_SUCCESS;
         }
 
-        // Prompt for password if not provided
-        if (password == null) {
-            password = promptPassword();
-            if (password == null) {
-                System.err.println("Error: Password is required");
-                return EXIT_INVALID_ARGS;
-            }
+        Integer argError = resolveRequiredOptions(options, this::printDecryptUsage);
+        if (argError != null) {
+            return argError;
         }
 
         // Determine format from algorithm
         String formatPrefix = DEFAULT_FORMAT_PREFIX;
         String formatSuffix = DEFAULT_FORMAT_SUFFIX;
-        if (cipherRegistry.hasAlgorithm(algorithm)) {
-            AlgorithmConfig config = cipherRegistry.getAlgorithm(algorithm);
+        if (cipherRegistry.hasAlgorithm(options.algorithm)) {
+            AlgorithmConfig config = cipherRegistry.getAlgorithm(options.algorithm);
             formatPrefix = config.getDefaultFormatPrefix();
             formatSuffix = config.getDefaultFormatSuffix();
         }
 
-        // Perform decryption
+        return runCryptoOperation(options, formatPrefix, formatSuffix, false);
+    }
+
+    /**
+     * Parses the common command-line options for encrypt and decrypt.
+     */
+    private CliOptions parseOptions(String[] args) {
+        CliOptions options = new CliOptions();
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (("--password".equals(arg) || "-p".equals(arg)) && i + 1 < args.length) {
+                options.password = args[++i];
+            } else if (("--value".equals(arg) || "-v".equals(arg)) && i + 1 < args.length) {
+                options.value = args[++i];
+            } else if (("--algorithm".equals(arg) || "-a".equals(arg)) && i + 1 < args.length) {
+                options.algorithm = args[++i];
+            } else if (("--format".equals(arg) || "-f".equals(arg)) && i + 1 < args.length) {
+                options.formatPrefix = args[++i];
+            } else if ("--help".equals(arg) || "-h".equals(arg)) {
+                options.helpRequested = true;
+            }
+        }
+        return options;
+    }
+
+    /**
+     * Validates the required value option and prompts for the password if it was
+     * not provided.
+     *
+     * @return an exit code on error, or null if all required options are present
+     */
+    private Integer resolveRequiredOptions(CliOptions options, Runnable printUsage) {
+        if (options.value == null) {
+            System.err.println("Error: --value is required");
+            printUsage.run();
+            return EXIT_INVALID_ARGS;
+        }
+
+        if (options.password == null) {
+            options.password = promptPassword();
+            if (options.password == null) {
+                System.err.println("Error: Password is required");
+                return EXIT_INVALID_ARGS;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Runs the encryption or decryption and prints the result.
+     */
+    private int runCryptoOperation(CliOptions options, String formatPrefix, String formatSuffix, boolean encrypt) {
         try {
-            CryptoService cryptoService = createCryptoService(password, algorithm, formatPrefix, formatSuffix);
-            String decrypted = cryptoService.decrypt(value);
-            System.out.println(decrypted);
+            CryptoService cryptoService = cryptoServiceFactory
+                    .create(options.password.toCharArray(), options.algorithm, formatPrefix, formatSuffix);
+            System.out.println(encrypt ? cryptoService.encrypt(options.value) : cryptoService.decrypt(options.value));
             return EXIT_SUCCESS;
         } catch (CryptoException e) {
-            System.err.println("Decryption failed: " + e.getMessage());
+            System.err.println((encrypt ? "Encryption" : "Decryption") + " failed: " + e.getMessage());
             return EXIT_ERROR;
         } catch (RuntimeException e) {
             System.err.println("Error: " + e.getMessage());
@@ -231,18 +232,6 @@ public final class PasswordUtilitySuiteCLI {
             System.out.println(sb);
         }
         return EXIT_SUCCESS;
-    }
-
-    private CryptoService createCryptoService(String password, String algorithm, String formatPrefix,
-            String formatSuffix) throws CryptoException {
-        KeyConfig keyConfig = new KeyConfig(password);
-        CipherFactory cipherFactory = new CipherFactory(cipherRegistry, keyConfig);
-
-        CryptoService cryptoService = new CryptoService(cipherFactory);
-        cryptoService.setFormat(formatPrefix, formatSuffix);
-        cryptoService.setAlgorithm(algorithm);
-
-        return cryptoService;
     }
 
     private String promptPassword() {
