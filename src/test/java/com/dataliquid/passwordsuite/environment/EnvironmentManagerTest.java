@@ -166,8 +166,8 @@ class EnvironmentManagerTest {
     @Test
     void shouldStoreAndRetrieveFormatSettings() {
         Map<String, EnvironmentConfig> environments = new HashMap<>();
-        environments.put("prod", new EnvironmentConfig("password".toCharArray(), "SEC[", "}"));
-        environments.put("dev", new EnvironmentConfig("password".toCharArray(), "ENC[", "]"));
+        environments.put("prod", new EnvironmentConfig("password".toCharArray(), "SEC[", "}", null));
+        environments.put("dev", new EnvironmentConfig("password".toCharArray(), "ENC[", "]", null));
 
         environmentManager.updateFromDialog(environments, "prod");
 

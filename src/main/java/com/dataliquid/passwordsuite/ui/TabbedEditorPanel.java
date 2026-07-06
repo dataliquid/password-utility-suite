@@ -4,12 +4,10 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Insets;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -20,13 +18,16 @@ import javax.swing.event.ChangeListener;
  * Panel containing a tabbed editor for managing multiple open files. Each tab
  * contains a FileTab instance with its own editor and configuration tree.
  */
-@SuppressWarnings("PMD.AssignmentInOperand")
 public final class TabbedEditorPanel extends JPanel {
 
     private static final long serialVersionUID = 1L;
 
+    /** Client property key linking a tab's scroll pane to its FileTab. */
+    private static final String FILE_TAB_PROPERTY = "passwordsuite.fileTab";
+    /** Client property key storing the stable tab id (used for component names). */
+    private static final String TAB_ID_PROPERTY = "passwordsuite.tabId";
+
     private final JTabbedPane tabbedPane;
-    private final Map<Integer, FileTab> tabMap;
     private int nextTabId;
 
     public TabbedEditorPanel() {
@@ -38,8 +39,6 @@ public final class TabbedEditorPanel extends JPanel {
         tabbedPane.setTabPlacement(JTabbedPane.TOP);
         tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
-        tabMap = new ConcurrentHashMap<>();
-
         add(tabbedPane, BorderLayout.CENTER);
     }
 
@@ -47,14 +46,17 @@ public final class TabbedEditorPanel extends JPanel {
      * Adds a new empty tab.
      */
     public FileTab addNewTab() {
-        int tabId = nextTabId++;
+        int tabId = nextTabId;
+        nextTabId++;
         FileTab fileTab = new FileTab();
 
-        tabMap.put(tabId, fileTab);
+        JComponent scrollPane = fileTab.getScrollPane();
+        scrollPane.putClientProperty(FILE_TAB_PROPERTY, fileTab);
+        scrollPane.putClientProperty(TAB_ID_PROPERTY, tabId);
 
         // Add tab with close button
         int index = tabbedPane.getTabCount();
-        tabbedPane.addTab(fileTab.getTabTitle(), fileTab.getScrollPane());
+        tabbedPane.addTab(fileTab.getTabTitle(), scrollPane);
         tabbedPane.setTabComponentAt(index, createTabComponent(tabId, fileTab));
 
         // Select the new tab
@@ -83,7 +85,7 @@ public final class TabbedEditorPanel extends JPanel {
         closeButton.setFocusable(false);
         closeButton.setBorderPainted(false);
         closeButton.setContentAreaFilled(false);
-        closeButton.addActionListener(e -> closeTab(tabId));
+        closeButton.addActionListener(e -> closeTab(fileTab));
 
         panel.add(closeButton);
 
@@ -91,14 +93,9 @@ public final class TabbedEditorPanel extends JPanel {
     }
 
     /**
-     * Closes a tab by its ID.
+     * Closes the tab containing the given FileTab.
      */
-    private void closeTab(int tabId) {
-        FileTab fileTab = tabMap.get(tabId);
-        if (fileTab == null) {
-            return;
-        }
-
+    private void closeTab(FileTab fileTab) {
         // Check if modified
         if (fileTab.isModified()) {
             int result = JOptionPane
@@ -113,20 +110,11 @@ public final class TabbedEditorPanel extends JPanel {
             // Note: YES_OPTION proceeds without saving - user has been warned and confirmed
         }
 
-        // Find index by tab ID
-        int indexToRemove = -1;
-        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
-            if (Objects.equals(getFileTabAt(i), fileTab)) {
-                indexToRemove = i;
-                break;
-            }
-        }
-
-        if (indexToRemove >= 0) {
+        int index = tabbedPane.indexOfComponent(fileTab.getScrollPane());
+        if (index >= 0) {
             // Cleanup resources before removing
             fileTab.cleanup();
-            tabbedPane.removeTabAt(indexToRemove);
-            tabMap.remove(tabId);
+            tabbedPane.removeTabAt(index);
         }
 
         // If no tabs left, create a new empty one
@@ -151,12 +139,7 @@ public final class TabbedEditorPanel extends JPanel {
      * Returns the FileTab at the specified tab index.
      */
     private FileTab getFileTabAt(int index) {
-        for (FileTab fileTab : tabMap.values()) {
-            if (tabbedPane.indexOfComponent(fileTab.getScrollPane()) == index) {
-                return fileTab;
-            }
-        }
-        return null;
+        return (FileTab) ((JComponent) tabbedPane.getComponentAt(index)).getClientProperty(FILE_TAB_PROPERTY);
     }
 
     /**
@@ -177,29 +160,16 @@ public final class TabbedEditorPanel extends JPanel {
      * Updates the tab title for the active tab.
      */
     public void updateActiveTabTitle() {
-        FileTab activeTab = getActiveTab();
+        int index = tabbedPane.getSelectedIndex();
+        if (index < 0) {
+            return;
+        }
+
+        FileTab activeTab = getFileTabAt(index);
         if (activeTab != null) {
-            int index = tabbedPane.getSelectedIndex();
-            if (index >= 0) {
-                // Update the tab component with new title
-                int tabId = getTabIdForFileTab(activeTab);
-                if (tabId >= 0) {
-                    tabbedPane.setTabComponentAt(index, createTabComponent(tabId, activeTab));
-                }
-            }
+            JComponent scrollPane = (JComponent) tabbedPane.getComponentAt(index);
+            int tabId = (Integer) scrollPane.getClientProperty(TAB_ID_PROPERTY);
+            tabbedPane.setTabComponentAt(index, createTabComponent(tabId, activeTab));
         }
     }
-
-    /**
-     * Finds the tab ID for a given FileTab.
-     */
-    private int getTabIdForFileTab(FileTab fileTab) {
-        for (Map.Entry<Integer, FileTab> entry : tabMap.entrySet()) {
-            if (Objects.equals(entry.getValue(), fileTab)) {
-                return entry.getKey();
-            }
-        }
-        return -1;
-    }
-
 }

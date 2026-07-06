@@ -4,6 +4,7 @@ import com.dataliquid.passwordsuite.crypto.Cipher;
 import com.dataliquid.passwordsuite.crypto.CryptoException;
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
 import com.dataliquid.passwordsuite.crypto.config.CipherConfig;
+import com.dataliquid.passwordsuite.crypto.config.FormatConfig;
 import com.dataliquid.passwordsuite.crypto.config.KeyConfig;
 
 /**
@@ -13,8 +14,8 @@ import com.dataliquid.passwordsuite.crypto.config.KeyConfig;
  */
 public class CipherFactory {
 
-    private static final String DEFAULT_FORMAT_PREFIX = "ENC[";
-    private static final String DEFAULT_FORMAT_SUFFIX = "]";
+    private static final String DEFAULT_FORMAT_PREFIX = FormatConfig.DEFAULT_PREFIX;
+    private static final String DEFAULT_FORMAT_SUFFIX = FormatConfig.DEFAULT_SUFFIX;
 
     private final CipherRegistry registry;
     private final KeyConfig keyConfig;

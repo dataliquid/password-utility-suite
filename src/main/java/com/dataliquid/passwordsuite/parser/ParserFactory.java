@@ -71,28 +71,13 @@ public class ParserFactory {
      * @return         an appropriate ConfigParser
      */
     public static ConfigParser getParser(String content, ConfigFormat format) {
-        return getParser(content, format, null, null);
-    }
-
-    /**
-     * Returns a parser for the specified format with custom format settings.
-     *
-     * @param  content      the configuration content
-     * @param  format       the configuration format
-     * @param  formatPrefix the prefix for encrypted values
-     * @param  formatSuffix the suffix for encrypted values
-     *
-     * @return              an appropriate ConfigParser
-     */
-    public static ConfigParser getParser(String content, ConfigFormat format, String formatPrefix,
-            String formatSuffix) {
         switch (format) {
         case YAML:
-            return new YamlConfigParser(formatPrefix, formatSuffix);
+            return new YamlConfigParser(null, null);
         case PROPERTIES:
-            return new PropertiesConfigParser(formatPrefix, formatSuffix);
+            return new PropertiesConfigParser(null, null);
         default:
-            return getParser(content, formatPrefix, formatSuffix);
+            return getParser(content, null, null);
         }
     }
 }

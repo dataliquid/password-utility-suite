@@ -20,6 +20,7 @@ import com.dataliquid.passwordsuite.ui.EnvironmentsDialog;
 import com.dataliquid.passwordsuite.ui.FileTab;
 import com.dataliquid.passwordsuite.ui.TabbedEditorPanel;
 import com.dataliquid.passwordsuite.ui.TreePanel;
+import com.dataliquid.passwordsuite.ui.UIConstants;
 
 /**
  * Handles environment operations (Environments dialog, algorithm change,
@@ -201,8 +202,9 @@ public class EnvironmentsHandler {
         }
 
         // Update algorithm to environment's default (only if environment exists)
-        if (environmentManager.hasEnvironments() && selected != null && !"No Environment".equals(selected)) {
-            String defaultAlgorithm = environmentManager.getActiveDefaultAlgorithm();
+        String defaultAlgorithm = environmentManager.hasEnvironments() ? environmentManager.getActiveDefaultAlgorithm()
+                : null;
+        if (defaultAlgorithm != null && selected != null && !UIConstants.NO_ENVIRONMENT.equals(selected)) {
             actionPanel.setSelectedAlgorithm(defaultAlgorithm);
             try {
                 cryptoService.setAlgorithm(defaultAlgorithm);
@@ -216,8 +218,6 @@ public class EnvironmentsHandler {
             logger.info("Clearing algorithm selection - no environment");
             actionPanel.clearAlgorithmSelection();
         }
-        String defaultAlgorithm = environmentManager.hasEnvironments() ? environmentManager.getActiveDefaultAlgorithm()
-                : null;
 
         // Update active tab if exists
         FileTab activeTab = tabbedEditorPanel.getActiveTab();
@@ -264,9 +264,9 @@ public class EnvironmentsHandler {
                     activeTab.setSelectedAlgorithm(tabAlgorithm);
                 }
             }
-            if (tabEnvironment == null || "No Environment".equals(tabEnvironment)) {
+            if (tabEnvironment == null || UIConstants.NO_ENVIRONMENT.equals(tabEnvironment)) {
                 tabEnvironment = actionPanel.getSelectedEnvironment();
-                if (tabEnvironment != null && !"No Environment".equals(tabEnvironment)) {
+                if (tabEnvironment != null && !UIConstants.NO_ENVIRONMENT.equals(tabEnvironment)) {
                     activeTab.setSelectedEnvironment(tabEnvironment);
                 }
             }

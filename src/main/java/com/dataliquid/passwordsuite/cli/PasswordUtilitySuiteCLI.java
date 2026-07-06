@@ -7,6 +7,7 @@ import java.util.Locale;
 
 import com.dataliquid.passwordsuite.crypto.CryptoException;
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
+import com.dataliquid.passwordsuite.crypto.config.FormatConfig;
 import com.dataliquid.passwordsuite.crypto.factory.CipherRegistry;
 import com.dataliquid.passwordsuite.service.CryptoService;
 import com.dataliquid.passwordsuite.service.CryptoServiceFactory;
@@ -28,8 +29,8 @@ import com.dataliquid.passwordsuite.service.CryptoServiceFactory;
 public final class PasswordUtilitySuiteCLI {
 
     private static final String DEFAULT_ALGORITHM = "AES-256-GCM";
-    private static final String DEFAULT_FORMAT_PREFIX = "ENC[";
-    private static final String DEFAULT_FORMAT_SUFFIX = "]";
+    private static final String DEFAULT_FORMAT_PREFIX = FormatConfig.DEFAULT_PREFIX;
+    private static final String DEFAULT_FORMAT_SUFFIX = FormatConfig.DEFAULT_SUFFIX;
 
     private static final int EXIT_SUCCESS = 0;
     private static final int EXIT_ERROR = 1;

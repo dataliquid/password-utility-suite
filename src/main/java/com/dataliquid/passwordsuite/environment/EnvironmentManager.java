@@ -18,7 +18,9 @@ import org.slf4j.LoggerFactory;
 public class EnvironmentManager {
 
     private static final Logger logger = LoggerFactory.getLogger(EnvironmentManager.class);
-    private static final String NO_ENVIRONMENT = "No Environment";
+
+    /** Sentinel value used when no environment is selected. */
+    public static final String NO_ENVIRONMENT = "No Environment";
 
     private final Map<String, EnvironmentConfig> environments = new ConcurrentHashMap<>();
     private String activeEnvironment;
