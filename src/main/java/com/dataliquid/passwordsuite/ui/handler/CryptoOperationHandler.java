@@ -1,5 +1,7 @@
 package com.dataliquid.passwordsuite.ui.handler;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 
 import javax.swing.JTextArea;
@@ -14,6 +16,7 @@ import com.dataliquid.passwordsuite.service.CryptoService;
 import com.dataliquid.passwordsuite.service.EditorService;
 import com.dataliquid.passwordsuite.ui.EditorTextUtil;
 import com.dataliquid.passwordsuite.ui.FileTab;
+import com.dataliquid.passwordsuite.ui.TreePanel;
 import com.dataliquid.passwordsuite.ui.UIConstants;
 
 /**
@@ -78,6 +81,103 @@ public class CryptoOperationHandler {
      */
     public boolean isConfigured() {
         return cryptoService.isConfigured();
+    }
+
+    /**
+     * Encrypts all marked entries in the tree panel.
+     *
+     * @param activeTab       the active file tab
+     * @param treePanel       the tree panel containing marked entries
+     * @param refreshCallback callback to refresh UI after operation
+     * @param errorCallback   callback to display error messages
+     * @param infoCallback    callback to display info messages
+     */
+    public void handleEncryptMarked(FileTab activeTab, TreePanel treePanel, Runnable refreshCallback,
+            Consumer<String> errorCallback, Consumer<String> infoCallback) {
+        handleMarkedOperation(true, activeTab, treePanel, refreshCallback, errorCallback, infoCallback);
+    }
+
+    /**
+     * Decrypts all marked entries in the tree panel.
+     *
+     * @param activeTab       the active file tab
+     * @param treePanel       the tree panel containing marked entries
+     * @param refreshCallback callback to refresh UI after operation
+     * @param errorCallback   callback to display error messages
+     * @param infoCallback    callback to display info messages
+     */
+    public void handleDecryptMarked(FileTab activeTab, TreePanel treePanel, Runnable refreshCallback,
+            Consumer<String> errorCallback, Consumer<String> infoCallback) {
+        handleMarkedOperation(false, activeTab, treePanel, refreshCallback, errorCallback, infoCallback);
+    }
+
+    /**
+     * Handles encryption or decryption of all marked entries.
+     *
+     * @param encrypt         true for encryption, false for decryption
+     * @param activeTab       the active file tab
+     * @param treePanel       the tree panel containing marked entries
+     * @param refreshCallback callback to refresh UI after operation
+     * @param errorCallback   callback to display error messages
+     * @param infoCallback    callback to display info messages
+     */
+    private void handleMarkedOperation(boolean encrypt, FileTab activeTab, TreePanel treePanel,
+            Runnable refreshCallback, Consumer<String> errorCallback, Consumer<String> infoCallback) {
+        String operationName = encrypt ? "encryption" : "decryption";
+        String operationVerb = encrypt ? ENCRYPTED_VERB : DECRYPTED_VERB;
+        String skipReason = encrypt ? "already encrypted" : "not encrypted";
+
+        if (activeTab == null) {
+            errorCallback.accept(UIConstants.NO_ACTIVE_TAB_MSG);
+            return;
+        }
+
+        if (!isConfigured()) {
+            errorCallback.accept(UIConstants.CONFIGURE_PASSWORD_MSG);
+            return;
+        }
+
+        List<ConfigEntry> markedEntries = treePanel.getMarkedEntries();
+        if (markedEntries.isEmpty()) {
+            infoCallback.accept("No entries marked for " + operationName);
+            return;
+        }
+
+        int processedCount = 0;
+        int skippedCount = 0;
+
+        for (ConfigEntry entry : markedEntries) {
+            boolean shouldProcess = encrypt ? !entry.isEncrypted() : entry.isEncrypted();
+            if (shouldProcess) {
+                try {
+                    toggleEncryption(entry, activeTab.getEditor(), () -> {
+                    });
+                    processedCount++;
+                } catch (Exception ex) {
+                    if (logger.isErrorEnabled()) {
+                        logger.error("Error {} entry: {} - {}", operationName, entry.getKey(), ex.getMessage(), ex);
+                    }
+                }
+            } else {
+                skippedCount++;
+            }
+        }
+
+        if (refreshCallback != null) {
+            refreshCallback.run();
+        }
+
+        if (logger.isInfoEnabled()) {
+            logger
+                    .info("{} Marked: {} {}, {} skipped - env='{}' algo='{}' format='{}{}'",
+                            encrypt ? "Encrypt" : "Decrypt", processedCount, operationVerb.toLowerCase(Locale.ROOT),
+                            skippedCount, environmentManager.getActiveEnvironment(),
+                            cryptoService.getCurrentAlgorithm(), cryptoService.getFormatPrefix(),
+                            cryptoService.getFormatSuffix());
+        }
+        infoCallback
+                .accept(operationVerb + " " + processedCount + " entries"
+                        + (skippedCount > 0 ? " (" + skippedCount + " " + skipReason + ")" : ""));
     }
 
     /**

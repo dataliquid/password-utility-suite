@@ -1,7 +1,9 @@
 package com.dataliquid.passwordsuite.service;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -22,6 +24,14 @@ import com.dataliquid.passwordsuite.parser.ParserFactory;
 public class EditorService {
 
     private static final Logger logger = LoggerFactory.getLogger(EditorService.class);
+    private static final char TAB_CHAR = '\t';
+    private static final int TAB_WIDTH = 4;
+
+    /**
+     * YAML block scalar indicator at the end of a key line: | or >, optionally
+     * followed by chomping (+/-) and/or indentation indicators (e.g., "|-", ">2").
+     */
+    private static final Pattern BLOCK_SCALAR_INDICATOR = Pattern.compile("[|>][+-]?\\d*$");
 
     private ConfigTree currentTree;
     private final Deque<Operation> undoStack = new ArrayDeque<>();
@@ -177,6 +187,22 @@ public class EditorService {
             return Optional.empty();
         }
 
+        // Multiline YAML values (literal block scalars) are collapsed to a single
+        // line containing the new value
+        if (oldValue.contains("\n")) {
+            // Line numbers for YAML come from a heuristic - never touch a line that
+            // does not belong to this key
+            if (!lines[lineNum].trim().startsWith(entry.getKey() + ":")) {
+                if (logger.isWarnEnabled()) {
+                    logger
+                            .warn("Cannot replace multiline value: line {} does not start with key '{}'", lineNum,
+                                    entry.getKey());
+                }
+                return Optional.empty();
+            }
+            return Optional.of(replaceMultilineValue(lines, lineNum, entry.getKey(), newValue));
+        }
+
         String originalLine = lines[lineNum];
         String newLine = replaceValueInLine(originalLine, oldValue, newValue);
 
@@ -193,6 +219,95 @@ public class EditorService {
             logger.info("Replaced value in editor at line {} (key={})", lineNum, entry.getKey());
         }
         return Optional.of(String.join("\n", lines));
+    }
+
+    /**
+     * Replaces a multiline YAML value (literal block scalar with | or >) with a
+     * single-line value. Removes all indented continuation lines while keeping
+     * everything after the block.
+     *
+     * @param  lines    the lines of the document
+     * @param  lineNum  the line number of the key
+     * @param  key      the key name
+     * @param  newValue the new value to insert
+     *
+     * @return          the new content with the multiline value replaced
+     */
+    private String replaceMultilineValue(String[] lines, int lineNum, String key, String newValue) {
+        String keyLine = lines[lineNum];
+        int keyIndent = getIndentation(keyLine);
+
+        // Build new key line: preserve indentation, replace "key: |" (including
+        // chomping/indentation indicators like "|-" or ">2") with "key: newValue"
+        String trimmedKeyLine = keyLine.trim();
+        String newKeyLine;
+        if (BLOCK_SCALAR_INDICATOR.matcher(trimmedKeyLine).find()) {
+            int colonPos = keyLine.indexOf(':');
+            newKeyLine = keyLine.substring(0, colonPos + 1) + " " + newValue;
+        } else {
+            // Fallback: just use key: newValue with same indentation
+            newKeyLine = " ".repeat(keyIndent) + key + ": " + newValue;
+        }
+
+        // Collect lines, skipping the multiline block content
+        List<String> resultLines = new ArrayList<>();
+        boolean blockEnded = false;
+
+        for (int i = 0; i < lines.length; i++) {
+            if (i == lineNum) {
+                resultLines.add(newKeyLine);
+            } else if (i > lineNum && !blockEnded) {
+                if (lines[i].isBlank()) {
+                    // Empty line - part of the block only if more indented lines follow
+                    if (isWithinMultilineBlock(lines, i, keyIndent)) {
+                        continue;
+                    }
+                    blockEnded = true;
+                    resultLines.add(lines[i]);
+                } else if (getIndentation(lines[i]) > keyIndent) {
+                    continue; // Part of the multiline block
+                } else {
+                    // Line with same or less indentation - block has ended
+                    blockEnded = true;
+                    resultLines.add(lines[i]);
+                }
+            } else {
+                resultLines.add(lines[i]);
+            }
+        }
+
+        return String.join("\n", resultLines);
+    }
+
+    /**
+     * Checks if an empty line at the given index is within a multiline block.
+     */
+    private boolean isWithinMultilineBlock(String[] lines, int index, int keyIndent) {
+        // Look ahead to see if there are more indented lines after this empty line
+        for (int i = index + 1; i < lines.length; i++) {
+            String line = lines[i];
+            if (!line.isBlank()) {
+                return getIndentation(line) > keyIndent;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the number of leading spaces in a line. Tabs are counted as 4 spaces.
+     */
+    private int getIndentation(String line) {
+        int count = 0;
+        for (char c : line.toCharArray()) {
+            if (Character.isSpaceChar(c)) {
+                count++;
+            } else if (c == TAB_CHAR) {
+                count += TAB_WIDTH;
+            } else {
+                break;
+            }
+        }
+        return count;
     }
 
     /**
