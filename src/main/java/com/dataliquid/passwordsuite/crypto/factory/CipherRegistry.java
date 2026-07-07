@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
 import com.dataliquid.passwordsuite.crypto.core.SymmetricCipher;
 import com.dataliquid.passwordsuite.crypto.impl.AesGcmCipher;
+import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcAutoDetectCipher;
 import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcCipher;
 import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcPasswordIvCipher;
 
@@ -57,6 +58,11 @@ public final class CipherRegistry {
         // This matches MuleSoft's --use-random-iv flag
         register("MuleSoft-AES-CBC-RandomIV",
                 new AlgorithmConfig("AES", "CBC", "PKCS5Padding", 256, MuleSoftAesCbcCipher::new, "![", "]", 16, 32));
+
+        // MuleSoft-compatible AES-CBC that auto-detects the IV mode on decrypt
+        // (encrypts with random IV)
+        register("MuleSoft-AES-CBC-Auto", new AlgorithmConfig("AES", "CBC", "PKCS5Padding", 256,
+                MuleSoftAesCbcAutoDetectCipher::new, "![", "]", 16, 32));
     }
 
     /**
