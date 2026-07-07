@@ -10,6 +10,8 @@ import java.awt.Insets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -41,6 +43,7 @@ public final class EnvironmentsDialog extends JDialog {
     private final JPasswordField masterPasswordField;
     private final JTextField formatPrefixField;
     private final JTextField formatSuffixField;
+    private final JTextField patternField;
     private final JComboBox<String> algorithmComboBox;
     private final JButton editButton;
     private final JButton deleteButton;
@@ -68,7 +71,7 @@ public final class EnvironmentsDialog extends JDialog {
         this.availableAlgorithms = cipherRegistry != null ? cipherRegistry.getAvailableAlgorithms() : List.of();
 
         setLayout(new BorderLayout(10, 10));
-        setSize(500, 420);
+        setSize(500, 470);
         setLocationRelativeTo(parent);
 
         // Deep copy existing environments
@@ -77,7 +80,7 @@ public final class EnvironmentsDialog extends JDialog {
             for (Map.Entry<String, EnvironmentConfig> entry : existingEnvironments.entrySet()) {
                 EnvironmentConfig config = entry.getValue();
                 EnvironmentConfig configCopy = new EnvironmentConfig(config.getPassword(), config.getFormatPrefix(),
-                        config.getFormatSuffix(), config.getDefaultAlgorithm());
+                        config.getFormatSuffix(), config.getDefaultAlgorithm(), config.getPattern());
                 this.environments.put(entry.getKey(), configCopy);
             }
         }
@@ -204,6 +207,22 @@ public final class EnvironmentsDialog extends JDialog {
         formatSuffixField.setToolTipText("Suffix for encrypted values (e.g., ], })");
         formPanel.add(formatSuffixField, gbc);
 
+        // Filename Pattern field
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.weightx = 0.0;
+        JLabel patternLabel = new JLabel("Filename Pattern:");
+        patternLabel.setName("patternLabel");
+        patternLabel.setToolTipText("Optional regex pattern to auto-detect this environment");
+        formPanel.add(patternLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        patternField = new JTextField(20);
+        patternField.setName("patternField");
+        patternField.setToolTipText("Example: .*-prod\\.properties or .*/production/.*");
+        formPanel.add(patternField, gbc);
+
         // ItemListener: Update format fields when algorithm changes
         algorithmComboBox.addItemListener(e -> {
             if (e.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
@@ -309,12 +328,14 @@ public final class EnvironmentsDialog extends JDialog {
             formatPrefixField.setText(config.getFormatPrefix());
             formatSuffixField.setText(config.getFormatSuffix());
             algorithmComboBox.setSelectedItem(config.getDefaultAlgorithm());
+            patternField.setText(config.getPattern() != null ? config.getPattern() : "");
         } else {
             environmentNameField.setText("");
             masterPasswordField.setText("");
             formatPrefixField.setText(EnvironmentConfig.DEFAULT_FORMAT_PREFIX);
             formatSuffixField.setText(EnvironmentConfig.DEFAULT_FORMAT_SUFFIX);
             algorithmComboBox.setSelectedItem(EnvironmentConfig.DEFAULT_ALGORITHM);
+            patternField.setText("");
         }
     }
 
@@ -347,6 +368,18 @@ public final class EnvironmentsDialog extends JDialog {
         String prefix = formatPrefixField.getText();
         String suffix = formatSuffixField.getText();
         String algorithm = (String) algorithmComboBox.getSelectedItem();
+        String pattern = patternField.getText().trim();
+
+        if (!pattern.isEmpty()) {
+            try {
+                Pattern.compile(pattern);
+            } catch (PatternSyntaxException e) {
+                JOptionPane
+                        .showMessageDialog(this, "Invalid filename pattern: " + e.getDescription(), "Validation Error",
+                                JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
 
         if (newName.isEmpty()) {
             JOptionPane
@@ -381,7 +414,8 @@ public final class EnvironmentsDialog extends JDialog {
         }
 
         // Save environment with full configuration
-        EnvironmentConfig config = new EnvironmentConfig(newPassword, prefix, suffix, algorithm);
+        EnvironmentConfig config = new EnvironmentConfig(newPassword, prefix, suffix, algorithm,
+                pattern.isEmpty() ? null : pattern);
         environments.put(newName, config);
         refreshComboBox();
 
@@ -395,6 +429,7 @@ public final class EnvironmentsDialog extends JDialog {
         formatPrefixField.setText(EnvironmentConfig.DEFAULT_FORMAT_PREFIX);
         formatSuffixField.setText(EnvironmentConfig.DEFAULT_FORMAT_SUFFIX);
         algorithmComboBox.setSelectedItem(EnvironmentConfig.DEFAULT_ALGORITHM);
+        patternField.setText("");
         environmentNameField.requestFocus();
     }
 
