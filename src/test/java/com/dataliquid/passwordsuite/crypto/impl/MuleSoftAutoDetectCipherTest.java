@@ -23,22 +23,22 @@ import com.dataliquid.passwordsuite.crypto.config.KeyConfig;
  * (secure-properties-tool.jar), with and without {@code --use-random-iv}.
  * </p>
  */
-class MuleSoftAesCbcAutoDetectCipherTest {
+class MuleSoftAutoDetectCipherTest {
 
     private static final String AES128_PASSWORD = "1234567890123456";
     private static final String AES256_PASSWORD = "12345678901234567890123456789012";
 
-    private MuleSoftAesCbcAutoDetectCipher cipher;
+    private MuleSoftAutoDetectCipher cipher;
 
     @BeforeEach
     void setUp() {
         cipher = createCipher(AES128_PASSWORD);
     }
 
-    private MuleSoftAesCbcAutoDetectCipher createCipher(String password) {
+    private MuleSoftAutoDetectCipher createCipher(String password) {
         KeyConfig keyConfig = new KeyConfig(password);
         CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
-        return new MuleSoftAesCbcAutoDetectCipher(config);
+        return new MuleSoftAutoDetectCipher(config);
     }
 
     @Test
@@ -64,7 +64,7 @@ class MuleSoftAesCbcAutoDetectCipherTest {
 
     @Test
     void shouldDecryptBothModesWithAes256Key() throws CryptoException {
-        MuleSoftAesCbcAutoDetectCipher aes256 = createCipher(AES256_PASSWORD);
+        MuleSoftAutoDetectCipher aes256 = createCipher(AES256_PASSWORD);
 
         // secure-properties-tool.jar with 32-char key, without and with --use-random-iv
         assertThat(aes256.decrypt("![lC2ckrBwrHM2+Vsd7zSPFg==]")).isEqualTo("secret");
@@ -91,8 +91,8 @@ class MuleSoftAesCbcAutoDetectCipherTest {
     void shouldRoundTripValuesFromBothExplicitCiphers() throws CryptoException {
         KeyConfig keyConfig = new KeyConfig(AES128_PASSWORD);
         CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
-        MuleSoftAesCbcCipher randomIv = new MuleSoftAesCbcCipher(config);
-        MuleSoftAesCbcPasswordIvCipher passwordIv = new MuleSoftAesCbcPasswordIvCipher(config);
+        MuleSoftRandomIvCipher randomIv = new MuleSoftRandomIvCipher(config);
+        MuleSoftPasswordIvCipher passwordIv = new MuleSoftPasswordIvCipher(config);
 
         String plaintext = "äöü€ Sonderzeichen und = : Trenner";
         assertThat(cipher.decrypt(randomIv.encrypt(plaintext))).isEqualTo(plaintext);
@@ -106,7 +106,7 @@ class MuleSoftAesCbcAutoDetectCipherTest {
 
     @Test
     void shouldRejectWrongPassword() {
-        MuleSoftAesCbcAutoDetectCipher wrongPassword = createCipher("9999999999999999");
+        MuleSoftAutoDetectCipher wrongPassword = createCipher("9999999999999999");
 
         assertThatThrownBy(() -> wrongPassword.decrypt("![y3VTImLJh47XE65MvrFqpCviQ5TfPbVYcXgx4Np9Wug=]"))
                 .isInstanceOf(CryptoException.class);
@@ -134,12 +134,12 @@ class MuleSoftAesCbcAutoDetectCipherTest {
         String plaintext = "x".repeat(length);
 
         for (String password : new String[] { AES128_PASSWORD, AES256_PASSWORD }) {
-            MuleSoftAesCbcAutoDetectCipher autoCipher = createCipher(password);
+            MuleSoftAutoDetectCipher autoCipher = createCipher(password);
             KeyConfig keyConfig = new KeyConfig(password);
             CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
 
-            String randomIvValue = new MuleSoftAesCbcCipher(config).encrypt(plaintext);
-            String passwordIvValue = new MuleSoftAesCbcPasswordIvCipher(config).encrypt(plaintext);
+            String randomIvValue = new MuleSoftRandomIvCipher(config).encrypt(plaintext);
+            String passwordIvValue = new MuleSoftPasswordIvCipher(config).encrypt(plaintext);
 
             assertThat(autoCipher.decrypt(randomIvValue)).isEqualTo(plaintext);
             assertThat(autoCipher.decrypt(passwordIvValue)).isEqualTo(plaintext);
@@ -151,11 +151,11 @@ class MuleSoftAesCbcAutoDetectCipherTest {
         SecureRandom random = new SecureRandom();
 
         for (String password : new String[] { AES128_PASSWORD, AES256_PASSWORD }) {
-            MuleSoftAesCbcAutoDetectCipher autoCipher = createCipher(password);
+            MuleSoftAutoDetectCipher autoCipher = createCipher(password);
             KeyConfig keyConfig = new KeyConfig(password);
             CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
-            MuleSoftAesCbcCipher randomIv = new MuleSoftAesCbcCipher(config);
-            MuleSoftAesCbcPasswordIvCipher passwordIv = new MuleSoftAesCbcPasswordIvCipher(config);
+            MuleSoftRandomIvCipher randomIv = new MuleSoftRandomIvCipher(config);
+            MuleSoftPasswordIvCipher passwordIv = new MuleSoftPasswordIvCipher(config);
 
             for (int i = 0; i < 250; i++) {
                 int length = 1 + random.nextInt(40);
@@ -177,8 +177,8 @@ class MuleSoftAesCbcAutoDetectCipherTest {
         CipherConfig config = new CipherConfig("AES", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
 
         String plaintext = "line one\nline two\twith tab\r\nline three - long enough to cross a block";
-        assertThat(cipher.decrypt(new MuleSoftAesCbcCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
-        assertThat(cipher.decrypt(new MuleSoftAesCbcPasswordIvCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
+        assertThat(cipher.decrypt(new MuleSoftRandomIvCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
+        assertThat(cipher.decrypt(new MuleSoftPasswordIvCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
     }
 
     @Test
@@ -189,8 +189,8 @@ class MuleSoftAesCbcAutoDetectCipherTest {
         // 12 umlauts = 24 UTF-8 bytes; the 16-byte block boundary falls inside a
         // multi-byte character
         String plaintext = "äöüäöüäöüäöü";
-        assertThat(cipher.decrypt(new MuleSoftAesCbcCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
-        assertThat(cipher.decrypt(new MuleSoftAesCbcPasswordIvCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
+        assertThat(cipher.decrypt(new MuleSoftRandomIvCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
+        assertThat(cipher.decrypt(new MuleSoftPasswordIvCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
     }
 
     @Test
@@ -212,5 +212,28 @@ class MuleSoftAesCbcAutoDetectCipherTest {
         assertThatThrownBy(() -> cipher.decrypt(encrypted))
                 .isInstanceOf(CryptoException.class)
                 .hasMessageContaining("auto-detect");
+    }
+
+    @Test
+    void shouldAutoDetectBlowfishBothModesFromMuleSoftTool() throws CryptoException {
+        // 8-byte block size: detection works on one block of garbage instead of 16
+        KeyConfig keyConfig = new KeyConfig(AES128_PASSWORD);
+        CipherConfig config = new CipherConfig("Blowfish", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
+        MuleSoftAutoDetectCipher blowfishAuto = new MuleSoftAutoDetectCipher(config);
+
+        // secure-properties-tool.jar values, without and with --use-random-iv
+        assertThat(blowfishAuto.decrypt("![jCN/KItxCMZkyVFhaBCbog==]")).isEqualTo("secret123");
+        assertThat(blowfishAuto.decrypt("![Ea1vLjm3PbZ2C9Qu/eaVQv/eg6F9g0IM]")).isEqualTo("secret123");
+    }
+
+    @Test
+    void shouldRoundTripBlowfishValuesFromBothExplicitCiphers() throws CryptoException {
+        KeyConfig keyConfig = new KeyConfig(AES128_PASSWORD);
+        CipherConfig config = new CipherConfig("Blowfish", "CBC", "PKCS5Padding", 128, "![", "]", keyConfig);
+        MuleSoftAutoDetectCipher blowfishAuto = new MuleSoftAutoDetectCipher(config);
+
+        String plaintext = "blowfish auto-detect value";
+        assertThat(blowfishAuto.decrypt(new MuleSoftRandomIvCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
+        assertThat(blowfishAuto.decrypt(new MuleSoftPasswordIvCipher(config).encrypt(plaintext))).isEqualTo(plaintext);
     }
 }

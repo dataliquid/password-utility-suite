@@ -8,9 +8,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.dataliquid.passwordsuite.crypto.config.AlgorithmConfig;
 import com.dataliquid.passwordsuite.crypto.core.SymmetricCipher;
 import com.dataliquid.passwordsuite.crypto.impl.AesGcmCipher;
-import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcAutoDetectCipher;
-import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcCipher;
-import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAesCbcPasswordIvCipher;
+import com.dataliquid.passwordsuite.crypto.impl.MuleSoftAutoDetectCipher;
+import com.dataliquid.passwordsuite.crypto.impl.MuleSoftKeyRules;
+import com.dataliquid.passwordsuite.crypto.impl.MuleSoftPasswordIvCipher;
+import com.dataliquid.passwordsuite.crypto.impl.MuleSoftRandomIvCipher;
 
 /**
  * Registry of available encryption algorithms. Maps algorithm names to their
@@ -49,20 +50,30 @@ public final class CipherRegistry {
         register("Blowfish", new AlgorithmConfig("Blowfish", "CBC", "PKCS5Padding", 128,
                 config -> new SymmetricCipher(config, BLOWFISH_IV_LENGTH)));
 
-        // MuleSoft-compatible AES-CBC with password as IV (default MuleSoft mode)
-        // This is the standard MuleSoft format when NOT using --use-random-iv
-        register("MuleSoft-AES-CBC", new AlgorithmConfig("AES", "CBC", "PKCS5Padding", 256,
-                MuleSoftAesCbcPasswordIvCipher::new, "![", "]", 16, 32));
+        // MuleSoft Secure Properties Tool compatible algorithms. Each family
+        // offers the default mode (password as IV), --use-random-iv and an
+        // auto-detecting variant.
+        registerMuleSoftFamily("MuleSoft-AES-CBC", "AES", 256);
+        registerMuleSoftFamily("MuleSoft-Blowfish-CBC", "Blowfish", 128);
+        registerMuleSoftFamily("MuleSoft-DESede-CBC", "DESede", 168);
+    }
 
-        // MuleSoft-compatible AES-CBC with random IV prepended
-        // This matches MuleSoft's --use-random-iv flag
-        register("MuleSoft-AES-CBC-RandomIV",
-                new AlgorithmConfig("AES", "CBC", "PKCS5Padding", 256, MuleSoftAesCbcCipher::new, "![", "]", 16, 32));
+    /**
+     * Registers the three IV-mode variants of a MuleSoft-compatible CBC algorithm:
+     * password-as-IV (deterministic, MuleSoft default), random IV (--use-random-iv)
+     * and auto-detection on decrypt.
+     */
+    private void registerMuleSoftFamily(String baseName, String algorithm, int keySize) {
+        register(baseName, muleSoftConfig(algorithm, keySize, MuleSoftPasswordIvCipher::new));
+        register(baseName + "-RandomIV", muleSoftConfig(algorithm, keySize, MuleSoftRandomIvCipher::new));
+        register(baseName + "-Auto", muleSoftConfig(algorithm, keySize, MuleSoftAutoDetectCipher::new));
+    }
 
-        // MuleSoft-compatible AES-CBC that auto-detects the IV mode on decrypt
-        // (encrypts with random IV)
-        register("MuleSoft-AES-CBC-Auto", new AlgorithmConfig("AES", "CBC", "PKCS5Padding", 256,
-                MuleSoftAesCbcAutoDetectCipher::new, "![", "]", 16, 32));
+    private static AlgorithmConfig muleSoftConfig(String algorithm, int keySize,
+            AlgorithmConfig.CipherSupplier factory) {
+        return new AlgorithmConfig(algorithm, "CBC", "PKCS5Padding", keySize, factory, "![", "]",
+                length -> MuleSoftKeyRules.isValidKeyLength(algorithm, length),
+                MuleSoftKeyRules.passwordRequirement(algorithm));
     }
 
     /**

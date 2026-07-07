@@ -12,18 +12,24 @@ import com.dataliquid.passwordsuite.crypto.CryptoException;
 import com.dataliquid.passwordsuite.crypto.config.CipherConfig;
 
 /**
- * Base class for MuleSoft Secure Properties Tool compatible AES-CBC ciphers.
- * MuleSoft uses the password directly as the AES key (no PBKDF2); the password
- * must be exactly 16 bytes (AES-128) or 32 bytes (AES-256).
+ * Base class for MuleSoft Secure Properties Tool compatible ciphers. MuleSoft
+ * uses the password directly as the encryption key (no PBKDF2); the allowed
+ * password length depends on the algorithm (AES: exactly 16 or 32 bytes,
+ * DESede: exactly 24 bytes, Blowfish: 8 to 56 bytes).
  */
 abstract class AbstractMuleSoftCipher implements Cipher {
 
-    protected static final int IV_LENGTH = 16; // 128 bits for AES block size
+    private static final int AES_BLOCK_SIZE = 16;
+    private static final int LEGACY_BLOCK_SIZE = 8; // Blowfish, DES, DESede
 
     protected final CipherConfig config;
 
+    /** IV length in bytes = cipher block size (16 for AES, 8 for the rest). */
+    protected final int ivLength;
+
     protected AbstractMuleSoftCipher(CipherConfig config) {
         this.config = config;
+        this.ivLength = "AES".equals(config.getAlgorithm()) ? AES_BLOCK_SIZE : LEGACY_BLOCK_SIZE;
     }
 
     @Override
@@ -40,7 +46,7 @@ abstract class AbstractMuleSoftCipher implements Cipher {
         } catch (CryptoException e) {
             throw e;
         } catch (Exception e) {
-            throw new CryptoException("MuleSoft AES-CBC encryption failed: " + e.getMessage(), e);
+            throw new CryptoException("MuleSoft " + config.getAlgorithm() + " encryption failed: " + e.getMessage(), e);
         }
     }
 
@@ -75,7 +81,7 @@ abstract class AbstractMuleSoftCipher implements Cipher {
         } catch (CryptoException e) {
             throw e;
         } catch (Exception e) {
-            throw new CryptoException("MuleSoft AES-CBC decryption failed: " + e.getMessage(), e);
+            throw new CryptoException("MuleSoft " + config.getAlgorithm() + " decryption failed: " + e.getMessage(), e);
         }
     }
 
@@ -105,7 +111,7 @@ abstract class AbstractMuleSoftCipher implements Cipher {
     protected abstract byte[] doDecrypt(byte[] payload, SecretKey key) throws Exception;
 
     /**
-     * Creates an initialized AES-CBC cipher for the given mode and IV.
+     * Creates an initialized cipher for the given mode and IV.
      *
      * @param  mode      the cipher mode (ENCRYPT_MODE or DECRYPT_MODE)
      * @param  key       the secret key
@@ -122,22 +128,26 @@ abstract class AbstractMuleSoftCipher implements Cipher {
     }
 
     /**
-     * Gets the AES key directly from the password. The password must be exactly 16
-     * bytes (AES-128) or 32 bytes (AES-256) for MuleSoft compatibility.
+     * Gets the key directly from the password (MuleSoft style - no key derivation).
+     * The allowed password length depends on the algorithm.
      *
      * @return                 the secret key
      *
-     * @throws CryptoException if password length is invalid
+     * @throws CryptoException if password length is invalid for the algorithm
      */
     private SecretKey getKeyFromPassword() throws CryptoException {
-        String password = config.getKeyConfig().getMasterPassword();
-        byte[] keyBytes = password.getBytes(StandardCharsets.UTF_8);
+        String algorithm = config.getAlgorithm();
+        byte[] keyBytes = config.getKeyConfig().getMasterPassword().getBytes(StandardCharsets.UTF_8);
 
-        if (keyBytes.length != 16 && keyBytes.length != 32) {
+        validateKeyLength(algorithm, keyBytes.length);
+        return new SecretKeySpec(keyBytes, algorithm);
+    }
+
+    private static void validateKeyLength(String algorithm, int length) throws CryptoException {
+        if (!MuleSoftKeyRules.isValidKeyLength(algorithm, length)) {
             throw new CryptoException(
-                    "MuleSoft AES requires 16 or 32 character password, but got " + keyBytes.length + " characters.");
+                    "MuleSoft " + algorithm + " requires " + MuleSoftKeyRules.passwordRequirement(algorithm)
+                            + " character password, but got " + length + " characters.");
         }
-
-        return new SecretKeySpec(keyBytes, "AES");
     }
 }

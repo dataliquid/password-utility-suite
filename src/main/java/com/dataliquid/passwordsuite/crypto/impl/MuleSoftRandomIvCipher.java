@@ -15,25 +15,25 @@ import com.dataliquid.passwordsuite.crypto.key.SecureKeyGenerator;
  * the {@code --use-random-iv} flag. Output format is Base64(IV + ciphertext).
  * </p>
  * <p>
- * Use {@link MuleSoftAesCbcPasswordIvCipher} for MuleSoft's default mode
- * (password as IV).
+ * Use {@link MuleSoftPasswordIvCipher} for MuleSoft's default mode (password as
+ * IV).
  * </p>
  */
-public class MuleSoftAesCbcCipher extends AbstractMuleSoftCipher {
+public class MuleSoftRandomIvCipher extends AbstractMuleSoftCipher {
 
     /**
      * Creates a MuleSoft-compatible AES-CBC cipher.
      *
      * @param config the cipher configuration
      */
-    public MuleSoftAesCbcCipher(CipherConfig config) {
+    public MuleSoftRandomIvCipher(CipherConfig config) {
         super(config);
     }
 
     @Override
     protected byte[] doEncrypt(byte[] plaintext, SecretKey key) throws Exception {
         // Random IV is prepended to the ciphertext (MuleSoft --use-random-iv format)
-        byte[] iv = SecureKeyGenerator.generateIV(IV_LENGTH);
+        byte[] iv = SecureKeyGenerator.generateIV(ivLength);
         byte[] ciphertext = initCipher(javax.crypto.Cipher.ENCRYPT_MODE, key, iv).doFinal(plaintext);
 
         byte[] result = new byte[iv.length + ciphertext.length];
@@ -44,13 +44,13 @@ public class MuleSoftAesCbcCipher extends AbstractMuleSoftCipher {
 
     @Override
     protected byte[] doDecrypt(byte[] payload, SecretKey key) throws Exception {
-        // Minimum length: IV (16) + at least one block of ciphertext (16)
-        if (payload.length < IV_LENGTH + IV_LENGTH) {
+        // Minimum length: IV + at least one cipher block
+        if (payload.length < ivLength * 2) {
             throw new CryptoException("Invalid ciphertext: too short for random IV format");
         }
 
-        byte[] iv = Arrays.copyOfRange(payload, 0, IV_LENGTH);
-        byte[] ciphertext = Arrays.copyOfRange(payload, IV_LENGTH, payload.length);
+        byte[] iv = Arrays.copyOfRange(payload, 0, ivLength);
+        byte[] ciphertext = Arrays.copyOfRange(payload, ivLength, payload.length);
         return initCipher(javax.crypto.Cipher.DECRYPT_MODE, key, iv).doFinal(ciphertext);
     }
 }

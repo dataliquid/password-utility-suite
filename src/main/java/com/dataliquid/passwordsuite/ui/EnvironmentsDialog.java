@@ -391,19 +391,14 @@ public final class EnvironmentsDialog extends JDialog {
         // Validate password length for algorithms with constraints (e.g., MuleSoft)
         if (algorithm != null && cipherRegistry != null && cipherRegistry.hasAlgorithm(algorithm)) {
             AlgorithmConfig algoConfig = cipherRegistry.getAlgorithm(algorithm);
-            if (algoConfig.hasPasswordConstraints()) {
-                int pwLength = newPassword.length;
-                int minLen = algoConfig.getMinPasswordLength();
-                int maxLen = algoConfig.getMaxPasswordLength();
-                // MuleSoft: password must be exactly 16 or 32 characters (min=16, max=32)
-                if (pwLength != minLen && pwLength != maxLen) {
-                    JOptionPane
-                            .showMessageDialog(this,
-                                    "Password for " + algorithm + " must be exactly " + minLen + " or " + maxLen
-                                            + " characters.\n" + "Current length: " + pwLength,
-                                    "Password Validation Error", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
+            int pwLength = newPassword.length;
+            if (!algoConfig.isValidPasswordLength(pwLength)) {
+                JOptionPane
+                        .showMessageDialog(this,
+                                "Password for " + algorithm + " must be " + algoConfig.getPasswordRequirement()
+                                        + " characters.\nCurrent length: " + pwLength,
+                                "Password Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
             }
         }
 

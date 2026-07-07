@@ -36,25 +36,28 @@ import com.dataliquid.passwordsuite.crypto.config.CipherConfig;
  * Encryption always uses the random-IV variant (the semantically secure mode).
  * </p>
  */
-public class MuleSoftAesCbcAutoDetectCipher implements Cipher {
+public class MuleSoftAutoDetectCipher implements Cipher {
 
-    private static final int IV_LENGTH = 16; // 128 bits for AES block size
     private static final char FIRST_PRINTABLE = 0x20; // below: control characters
     private static final char DELETE_CHAR = 0x7F;
 
     private final CipherConfig config;
-    private final MuleSoftAesCbcCipher randomIvCipher;
-    private final MuleSoftAesCbcPasswordIvCipher passwordIvCipher;
+    private final MuleSoftRandomIvCipher randomIvCipher;
+    private final MuleSoftPasswordIvCipher passwordIvCipher;
+
+    /** IV length in bytes = cipher block size (16 for AES, 8 for the rest). */
+    private final int ivLength;
 
     /**
-     * Creates a MuleSoft-compatible AES-CBC cipher with IV mode auto-detection.
+     * Creates a MuleSoft-compatible cipher with IV mode auto-detection.
      *
      * @param config the cipher configuration
      */
-    public MuleSoftAesCbcAutoDetectCipher(CipherConfig config) {
+    public MuleSoftAutoDetectCipher(CipherConfig config) {
         this.config = config;
-        this.randomIvCipher = new MuleSoftAesCbcCipher(config);
-        this.passwordIvCipher = new MuleSoftAesCbcPasswordIvCipher(config);
+        this.randomIvCipher = new MuleSoftRandomIvCipher(config);
+        this.passwordIvCipher = new MuleSoftPasswordIvCipher(config);
+        this.ivLength = randomIvCipher.ivLength;
     }
 
     @Override
@@ -70,8 +73,8 @@ public class MuleSoftAesCbcAutoDetectCipher implements Cipher {
 
         byte[] payload = decodePayload(encrypted);
 
-        // A random-IV payload needs at least IV (16) + one cipher block (16)
-        if (payload.length < IV_LENGTH + IV_LENGTH) {
+        // A random-IV payload needs at least IV + one cipher block
+        if (payload.length < ivLength * 2) {
             return passwordIvCipher.decrypt(encrypted);
         }
 
@@ -84,9 +87,9 @@ public class MuleSoftAesCbcAutoDetectCipher implements Cipher {
             return new String(passwordIvResult, StandardCharsets.UTF_8);
         }
 
-        // For a random-IV value the password-IV result is 16 garbage bytes
-        // followed by the exact random-IV plaintext.
-        byte[] randomIvResult = Arrays.copyOfRange(passwordIvResult, IV_LENGTH, passwordIvResult.length);
+        // For a random-IV value the password-IV result is one block of garbage
+        // bytes followed by the exact random-IV plaintext.
+        byte[] randomIvResult = Arrays.copyOfRange(passwordIvResult, ivLength, passwordIvResult.length);
         if (isPlausibleText(randomIvResult)) {
             return new String(randomIvResult, StandardCharsets.UTF_8);
         }
