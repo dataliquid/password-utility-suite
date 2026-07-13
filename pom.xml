@@ -23,7 +23,7 @@
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <flatlaf.version>3.7.1</flatlaf.version>
+        <flatlaf.version>3.7.2</flatlaf.version>
         <snakeyaml.version>2.6</snakeyaml.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <slf4j.version>2.0.18</slf4j.version>
